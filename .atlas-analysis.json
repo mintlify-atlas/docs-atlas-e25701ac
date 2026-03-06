@@ -1,0 +1,146 @@
+{
+  "projectType": "saas",
+  "projectName": "Soraka",
+  "projectDescription": "Full-stack web application for hospital appointment booking with role-based access, JWT authentication, and email verification.",
+  "theme": "linden",
+  "primaryColor": "#1c63ec",
+  "lightColor": "#8cb4f4",
+  "darkColor": "#04143c",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/authentication",
+              "features/user-roles",
+              "features/appointments",
+              "features/doctors",
+              "features/specialties"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/docker",
+              "deployment/environment-variables",
+              "deployment/database-setup"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/backend",
+              "architecture/frontend",
+              "architecture/security"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Authentication",
+            "pages": [
+              "api/auth/login",
+              "api/auth/register",
+              "api/auth/confirm"
+            ]
+          },
+          {
+            "group": "Users",
+            "pages": [
+              "api/users/list",
+              "api/users/get",
+              "api/users/update",
+              "api/users/delete",
+              "api/users/public"
+            ]
+          },
+          {
+            "group": "Doctors",
+            "pages": [
+              "api/doctors/list",
+              "api/doctors/get",
+              "api/doctors/create",
+              "api/doctors/update",
+              "api/doctors/delete",
+              "api/doctors/public"
+            ]
+          },
+          {
+            "group": "Specialties",
+            "pages": [
+              "api/specialties/list",
+              "api/specialties/get",
+              "api/specialties/create",
+              "api/specialties/update",
+              "api/specialties/delete"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "pages": [
+              "api/appointments/list",
+              "api/appointments/available",
+              "api/appointments/my-appointments",
+              "api/appointments/get",
+              "api/appointments/create",
+              "api/appointments/update",
+              "api/appointments/delete",
+              "api/appointments/book",
+              "api/appointments/cancel"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "JWT-based authentication with 1-hour token expiration",
+    "Role-based access control (ADMIN, MEDICO, PACIENTE)",
+    "Email verification for account activation",
+    "Appointment booking and cancellation system",
+    "Doctor and specialty management",
+    "Real-time appointment availability tracking",
+    "Optimistic locking for concurrent booking prevention",
+    "Docker containerization with MySQL and phpMyAdmin"
+  ],
+  "publicApiSurface": [
+    "POST /auth/login",
+    "POST /auth/register",
+    "GET /auth/confirmar",
+    "GET /api/usuarios",
+    "GET /api/usuarios/{id}",
+    "PATCH /api/usuarios/{id}",
+    "DELETE /api/usuarios/{id}",
+    "GET /api/medicos",
+    "GET /api/medicos/publicos",
+    "GET /api/medicos/{id}",
+    "POST /api/medicos",
+    "PATCH /api/medicos/{id}",
+    "DELETE /api/medicos/{id}",
+    "GET /api/especialidades",
+    "GET /api/especialidades/{id}",
+    "POST /api/especialidades",
+    "PATCH /api/especialidades/{id}",
+    "DELETE /api/especialidades/{id}",
+    "GET /api/citas",
+    "GET /api/citas/disponibles",
+    "GET /api/citas/mis-citas",
+    "GET /api/citas/{id}",
+    "POST /api/citas",
+    "PATCH /api/citas/{id}",
+    "DELETE /api/citas/{id}",
+    "POST /api/citas/{id}/reservar",
+    "POST /api/citas/{id}/cancelar"
+  ]
+}
