@@ -1,0 +1,318 @@
+---
+title: Backend Architecture
+description: Spring Boot backend structure, dependencies, and design patterns
+---
+
+## Technology Overview
+
+The Soraka backend is built with:
+
+- **Spring Boot**: 3.5.9
+- **Java Version**: 21
+- **Build Tool**: Maven
+- **Database**: MySQL 8.0 (via JPA/Hibernate)
+
+## Maven Dependencies
+
+Key dependencies defined in `pom.xml`:
+
+### Core Spring Boot Starters
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-security</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-validation</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-mail</artifactId>
+</dependency>
+```
+
+### JWT Authentication
+
+```xml
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-api</artifactId>
+    <version>0.11.5</version>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-impl</artifactId>
+    <version>0.11.5</version>
+    <scope>runtime</scope>
+</dependency>
+<dependency>
+    <groupId>io.jsonwebtoken</groupId>
+    <artifactId>jjwt-jackson</artifactId>
+    <version>0.11.5</version>
+    <scope>runtime</scope>
+</dependency>
+```
+
+### Database Driver
+
+```xml
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <scope>runtime</scope>
+</dependency>
+```
+
+## Package Structure
+
+The backend follows a layered architecture pattern:
+
+```
+com.hospital.Soraka/
+├── config/              # Application configuration beans
+│   └── WebConfig.java
+├── controller/          # REST API endpoints (Controllers)
+│   ├── AuthController.java
+│   ├── CitaController.java
+│   ├── EspecialidadController.java
+│   ├── MedicoController.java
+│   └── UsuarioController.java
+├── dto/                 # Data Transfer Objects
+│   ├── cita/
+│   ├── especialidad/
+│   ├── login/
+│   ├── medico/
+│   └── usuario/
+├── entity/              # JPA entities (database models)
+│   ├── Cita.java
+│   ├── Especialidad.java
+│   ├── Medico.java
+│   ├── TokenConfirmacion.java
+│   └── Usuario.java
+├── enums/               # Enumeration types
+│   ├── EstadoCita.java
+│   └── Rol.java
+├── exception/           # Custom exception handling
+├── repository/          # Spring Data JPA repositories
+│   ├── CitaRepository.java
+│   ├── EspecialidadRepository.java
+│   ├── MedicoRepository.java
+│   ├── TokenConfirmacionRepository.java
+│   └── UsuarioRepository.java
+├── security/            # Security configuration & JWT
+│   ├── CustomUserDetailsService.java
+│   ├── JwtAuthenticationFilter.java
+│   ├── JwtService.java
+│   └── SecurityConfig.java
+└── service/             # Business logic layer
+    ├── CitaService.java
+    ├── ConfirmacionService.java
+    ├── EmailService.java
+    ├── EspecialidadService.java
+    ├── MedicoService.java
+    └── UsuarioService.java
+```
+
+## Architectural Layers
+
+### 1. Controller Layer
+
+REST controllers handle HTTP requests and responses:
+
+<CodeGroup>
+```java AuthController.java
+// Handles authentication endpoints
+// POST /auth/login - User login
+// POST /auth/register - User registration (MEDICO/ADMIN only)
+// GET /auth/confirmar?token=... - Account confirmation
+```
+
+```java UsuarioController.java
+// Manages user operations
+// GET /api/usuarios - List all users (ADMIN)
+// GET /api/usuarios/publico - Public user list
+// GET /api/usuarios/{id} - Get user by ID
+// PATCH /api/usuarios/{id} - Update user (ADMIN)
+// DELETE /api/usuarios/{id} - Delete user (ADMIN)
+```
+
+```java CitaController.java
+// Manages appointment operations
+// GET /api/citas - List all appointments (ADMIN)
+// GET /api/citas/disponibles - Available appointments
+// GET /api/citas/mis-citas - User's appointments
+// POST /api/citas - Create appointment (MEDICO/ADMIN)
+// POST /api/citas/{id}/reservar - Book appointment
+// POST /api/citas/{id}/cancelar - Cancel appointment
+```
+</CodeGroup>
+
+### 2. Service Layer
+
+Contains business logic and transaction management:
+
+- **UsuarioService**: User management, password encoding, account activation
+- **CitaService**: Appointment CRUD, booking logic, availability checks
+- **MedicoService**: Doctor management, specialty assignment
+- **EspecialidadService**: Medical specialty management
+- **EmailService**: Email sending for account confirmation
+- **ConfirmacionService**: Token generation and validation
+
+<Note>
+Services are annotated with `@Service` and use constructor-based dependency injection.
+</Note>
+
+### 3. Repository Layer
+
+Spring Data JPA repositories provide database access:
+
+```java
+public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
+    Optional<Usuario> findByEmail(String email);
+}
+
+public interface CitaRepository extends JpaRepository<Cita, Long> {
+    // Custom queries for available appointments, user appointments, etc.
+}
+```
+
+<Info>
+Repositories automatically implement CRUD operations without boilerplate code.
+</Info>
+
+### 4. Entity Layer
+
+JPA entities map to database tables:
+
+<AccordionGroup>
+  <Accordion title="Usuario Entity">
+    - Primary entity for all users (patients, doctors, admins)
+    - Implements Spring Security's `UserDetails` interface
+    - Fields: id, nombre, email, password, rol, isActivo, fechaRegistro
+    - Relationships: OneToOne with Medico, OneToMany with Cita
+  </Accordion>
+  
+  <Accordion title="Medico Entity">
+    - Doctor profile information
+    - OneToOne relationship with Usuario
+    - ManyToOne relationship with Especialidad
+    - OneToMany relationship with Cita
+  </Accordion>
+  
+  <Accordion title="Cita Entity">
+    - Appointment information
+    - ManyToOne relationship with Medico
+    - ManyToOne relationship with Usuario (paciente)
+    - Fields: fecha, hora, estado (enum: DISPONIBLE, RESERVADA, CANCELADA)
+  </Accordion>
+  
+  <Accordion title="Especialidad Entity">
+    - Medical specialty (e.g., Cardiology, Dermatology)
+    - OneToMany relationship with Medico
+  </Accordion>
+</AccordionGroup>
+
+## Data Transfer Objects (DTOs)
+
+DTOs separate API contracts from internal entities:
+
+### Naming Convention
+
+- **PostDTO**: For creating resources (e.g., `UsuarioPostDTO`)
+- **PatchDTO**: For updating resources (e.g., `UsuarioPatchDTO`)
+- **ResponseDTO**: For API responses (e.g., `UsuarioResponseDTO`)
+- **PublicoDTO**: For public endpoints with limited data (e.g., `UsuarioPublicoDTO`)
+
+### Benefits
+
+1. **Security**: Prevents exposing sensitive entity fields (e.g., passwords)
+2. **Flexibility**: API contracts independent of database schema
+3. **Validation**: Jakarta Validation annotations on DTOs
+4. **Versioning**: Easier to version APIs without breaking changes
+
+## Configuration
+
+### WebConfig
+
+Configures CORS, message converters, and other web-related settings.
+
+### Application Properties
+
+Key configuration (typically in `application.properties` or environment variables):
+
+```properties
+# Database
+spring.datasource.url=jdbc:mysql://localhost:3306/soraka
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD}
+
+# JPA/Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# JWT
+jwt.secret=${JWT_SECRET}
+
+# Email
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+```
+
+## Design Patterns
+
+### 1. Dependency Injection
+
+Constructor-based injection for all dependencies:
+
+```java
+@Service
+public class UsuarioService {
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    
+    public UsuarioService(
+        UsuarioRepository usuarioRepository,
+        PasswordEncoder passwordEncoder
+    ) {
+        this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+}
+```
+
+### 2. Repository Pattern
+
+Spring Data JPA repositories abstract database operations.
+
+### 3. DTO Pattern
+
+Separates API layer from domain layer.
+
+### 4. Filter Chain Pattern
+
+JWT authentication filter in Spring Security filter chain (see [Security Architecture](/architecture/security)).
+
+## API Documentation
+
+For complete API endpoint documentation, see the [API Reference](/api/auth/login) section.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Security Architecture" icon="lock" href="/architecture/security">
+    Learn about JWT authentication and Spring Security configuration
+  </Card>
+  <Card title="Frontend Architecture" icon="react" href="/architecture/frontend">
+    Explore how the React frontend consumes the API
+  </Card>
+</CardGroup>

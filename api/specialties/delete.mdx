@@ -1,0 +1,79 @@
+---
+title: 'Delete Medical Specialty'
+api: 'DELETE /api/especialidades/{id}'
+auth: 'bearer'
+---
+
+Deletes a medical specialty from the system. This endpoint is restricted to administrators only.
+
+<Warning>
+  This endpoint requires **ADMIN** privileges. Requests without proper authorization will receive a 403 Forbidden response.
+</Warning>
+
+<Warning>
+  Deleting a specialty may affect doctors who are currently associated with it. Ensure no active doctors or appointments are linked to this specialty before deletion.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the medical specialty to delete
+</ParamField>
+
+## Response
+
+On successful deletion, this endpoint returns **204 No Content** with an empty response body.
+
+<ResponseExample>
+```text 204 - No Content
+(Empty response body)
+```
+
+```json 404 - Not Found
+{
+  "error": "Specialty not found",
+  "message": "No specialty exists with ID: 999"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Access Denied",
+  "message": "You do not have permission to access this resource"
+}
+```
+
+```json 400 - Bad Request
+{
+  "error": "Cannot delete specialty",
+  "message": "This specialty is currently assigned to active doctors"
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+- Remove obsolete or discontinued medical specialties
+- Clean up duplicate or incorrectly created specialties
+- Maintain a current and accurate specialty catalog
+
+## Important Considerations
+
+<Warning>
+  **Before deleting a specialty:**
+  
+  1. Check if any doctors are currently assigned to this specialty
+  2. Verify no upcoming appointments are scheduled with doctors of this specialty
+  3. Consider updating rather than deleting if the specialty is still relevant
+</Warning>
+
+<Note>
+  This is a permanent operation. Once deleted, the specialty cannot be recovered. You will need to recreate it if needed in the future.
+</Note>
+
+## Best Practices
+
+- Always verify the specialty ID before deletion
+- Reassign doctors to other specialties before removing their current specialty
+- Consider maintaining an audit log of deleted specialties
+- Use soft deletes if your system requires maintaining historical data

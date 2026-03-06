@@ -1,0 +1,165 @@
+---
+title: "Create Appointment"
+api: "POST /api/citas"
+description: "Create a new appointment slot or confirmed appointment"
+---
+
+## Authorization
+
+This endpoint requires one of the following authorities:
+- `MEDICO`
+- `ADMIN`
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://api.soraka.hospital/api/citas \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pacienteId": 5,
+    "medicoId": 2,
+    "fechaHora": "2026-03-20T10:00:00",
+    "motivo": "Consulta de cardiología"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.hospital/api/citas', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    pacienteId: 5,
+    medicoId: 2,
+    fechaHora: '2026-03-20T10:00:00',
+    motivo: 'Consulta de cardiología'
+  })
+});
+const appointment = await response.json();
+```
+
+```java Java
+String json = """{
+  "pacienteId": 5,
+  "medicoId": 2,
+  "fechaHora": "2026-03-20T10:00:00",
+  "motivo": "Consulta de cardiología"
+}""";
+
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas"))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .header("Content-Type", "application/json")
+  .POST(HttpRequest.BodyPublishers.ofString(json))
+  .build();
+HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "id": 123,
+  "pacienteId": 5,
+  "pacienteNombre": "Juan Pérez",
+  "medicoId": 2,
+  "medicoNombre": "Dr. María García",
+  "medicoEspecialidad": "Cardiología",
+  "fechaHora": "2026-03-20T10:00:00",
+  "estado": "CONFIRMADA",
+  "motivo": "Consulta de cardiología"
+}
+```
+
+```json 400 - Validation Error
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "errors": [
+    "El medico es obligatorio",
+    "La fecha y hora son obligatorias"
+  ]
+}
+```
+
+```json 409 - Conflict
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 409,
+  "error": "Conflict",
+  "message": "El médico ya tiene una cita en ese horario",
+  "path": "/api/citas"
+}
+```
+
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="pacienteId" type="integer" required>
+  Patient's user ID
+</ParamField>
+
+<ParamField body="medicoId" type="integer" required>
+  Doctor's ID
+</ParamField>
+
+<ParamField body="fechaHora" type="string" required>
+  Appointment date and time in ISO-8601 format (e.g., `2026-03-20T10:00:00`)
+</ParamField>
+
+<ParamField body="motivo" type="string">
+  Reason for the appointment (max 255 characters)
+</ParamField>
+
+## Response Fields
+
+<ResponseField name="id" type="integer" required>
+  Unique identifier for the created appointment
+</ResponseField>
+
+<ResponseField name="pacienteId" type="integer" required>
+  Patient's user ID
+</ResponseField>
+
+<ResponseField name="pacienteNombre" type="string" required>
+  Patient's full name
+</ResponseField>
+
+<ResponseField name="medicoId" type="integer" required>
+  Doctor's ID
+</ResponseField>
+
+<ResponseField name="medicoNombre" type="string" required>
+  Doctor's full name
+</ResponseField>
+
+<ResponseField name="medicoEspecialidad" type="string" required>
+  Doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="fechaHora" type="string" required>
+  Appointment date and time in ISO-8601 format
+</ResponseField>
+
+<ResponseField name="estado" type="enum" required>
+  Appointment status (typically `CONFIRMADA` when both patient and doctor are specified)
+</ResponseField>
+
+<ResponseField name="motivo" type="string">
+  Reason for the appointment
+</ResponseField>
+
+## Notes
+
+- Only doctors and administrators can create appointments
+- A unique constraint ensures no doctor can have overlapping appointments
+- The database enforces that each doctor can only have one appointment at a given time
+- If `pacienteId` is provided with `motivo`, the appointment is created with status `CONFIRMADA`

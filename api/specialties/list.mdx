@@ -1,0 +1,45 @@
+---
+title: 'List Medical Specialties'
+api: 'GET /api/especialidades'
+---
+
+Retrieves a list of all medical specialties available in the system. This endpoint is public to allow patients to browse specialties when viewing doctors and booking appointments.
+
+## Response
+
+<ResponseField name="id" type="long" required>
+  Unique identifier for the specialty
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Name of the medical specialty (e.g., "Cardiology", "Pediatrics")
+</ResponseField>
+
+<ResponseExample>
+```json Response
+[
+  {
+    "id": 1,
+    "nombre": "Cardiología"
+  },
+  {
+    "id": 2,
+    "nombre": "Pediatría"
+  },
+  {
+    "id": 3,
+    "nombre": "Dermatología"
+  }
+]
+```
+</ResponseExample>
+
+## Use Cases
+
+- Display specialty options when patients browse doctors
+- Populate specialty filters in appointment booking interface
+- Show available specialties in mobile app
+
+<Note>
+  This endpoint is publicly accessible and does not require authentication.
+</Note>

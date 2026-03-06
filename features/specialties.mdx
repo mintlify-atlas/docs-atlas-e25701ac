@@ -1,0 +1,486 @@
+---
+title: 'Specialties'
+description: 'Medical specialty management and doctor categorization'
+icon: 'hospital'
+---
+
+## Overview
+
+The specialty system organizes doctors into medical categories, enabling patients to find the right healthcare professional for their needs.
+
+## Specialty Entity
+
+The `Especialidad` entity represents a medical specialty:
+
+```java
+@Entity
+@Table(name = "especialidades")
+public class Especialidad {
+    private Long id;
+    private String nombre;              // Specialty name (unique)
+    private List<Medico> medicos;       // Associated doctors
+}
+```
+
+Reference: Especialidad.java:10-26
+
+### Key Characteristics
+
+<AccordionGroup>
+  <Accordion title="Unique Names" icon="tag">
+    Each specialty must have a unique name to prevent duplicates:
+    ```java
+    @NotBlank(message = "El nombre de la especialidad es obligatorio")
+    @Column(nullable = false, unique = true)
+    private String nombre;
+    ```
+    Reference: Especialidad.java:19-21
+  </Accordion>
+  
+  <Accordion title="One-to-Many with Doctors" icon="users">
+    A specialty can have multiple doctors, but each doctor has only one specialty:
+    ```java
+    @OneToMany(mappedBy = "especialidad", fetch = FetchType.LAZY)
+    private List<Medico> medicos = new ArrayList<>();
+    ```
+    Reference: Especialidad.java:23-25
+  </Accordion>
+  
+  <Accordion title="Lazy Loading" icon="hourglass">
+    The list of doctors is loaded lazily to optimize performance when querying specialties.
+  </Accordion>
+</AccordionGroup>
+
+## Public Access
+
+Specialty information is publicly accessible to help patients choose the right doctor.
+
+### Listing All Specialties
+
+**Endpoint:** `GET /api/especialidades`
+
+**Permission:** Public (no authentication required)
+
+```java
+@GetMapping
+public List<EspecialidadResponseDTO> getEspecialidades() {
+    return especialidadService.getEspecialidades();
+}
+```
+
+Reference: EspecialidadController.java:38-41
+
+Configured in SecurityConfig.java:
+```java
+auth.requestMatchers(HttpMethod.GET, "/api/especialidades/**").permitAll()
+```
+
+Reference: SecurityConfig.java:129
+
+<Note>
+  This endpoint is public to allow patients to browse specialties before registering or logging in.
+</Note>
+
+### Viewing Specific Specialty
+
+**Endpoint:** `GET /api/especialidades/{id}`
+
+**Permission:** Public (no authentication required)
+
+```java
+@GetMapping("/{id}")
+public EspecialidadResponseDTO getEspecialidadById(@PathVariable Long id) {
+    return especialidadService.getEspecialidadById(id);
+}
+```
+
+Reference: EspecialidadController.java:52-55
+
+**Example Response:**
+```json
+{
+  "id": 3,
+  "nombre": "Cardiología"
+}
+```
+
+## Administrative Management
+
+All write operations (create, update, delete) require **ADMIN** role.
+
+### Creating a Specialty
+
+Administrators can add new medical specialties:
+
+**Endpoint:** `POST /api/especialidades`
+
+**Permission:** ADMIN only
+
+**Request:**
+```json
+{
+  "nombre": "Dermatología"
+}
+```
+
+```java
+@PostMapping
+@PreAuthorize("hasAuthority('ADMIN')")
+public EspecialidadResponseDTO createEspecialidad(@Valid @RequestBody EspecialidadPostDTO especialidad) {
+    return especialidadService.createEspecialidad(especialidad);
+}
+```
+
+Reference: EspecialidadController.java:66-70
+
+<Warning>
+  The specialty name must be unique. Attempting to create a specialty with an existing name will result in a database constraint violation.
+</Warning>
+
+### Updating a Specialty
+
+Admins can update specialty information using partial updates (PATCH):
+
+**Endpoint:** `PATCH /api/especialidades/{id}`
+
+**Permission:** ADMIN only
+
+**Request:**
+```json
+{
+  "nombre": "Cardiología Pediátrica"
+}
+```
+
+```java
+@PatchMapping("/{id}")
+@PreAuthorize("hasAuthority('ADMIN')")
+public EspecialidadResponseDTO patchEspecialidad(@PathVariable Long id,
+                                                 @Valid @RequestBody EspecialidadPatchDTO especialidad) {
+    return especialidadService.patchEspecialidad(id, especialidad);
+}
+```
+
+Reference: EspecialidadController.java:82-87
+
+<Tip>
+  PATCH allows updating only the fields you send. Currently, only the `nombre` field can be updated.
+</Tip>
+
+### Deleting a Specialty
+
+Admins can remove specialties from the system:
+
+**Endpoint:** `DELETE /api/especialidades/{id}`
+
+**Permission:** ADMIN only
+
+```java
+@DeleteMapping("/{id}")
+@PreAuthorize("hasAuthority('ADMIN')")
+public ResponseEntity<Void> deleteEspecialidad(@PathVariable Long id) {
+    especialidadService.deleteEspecialidad(id);
+    return ResponseEntity.noContent().build();
+}
+```
+
+Reference: EspecialidadController.java:98-103
+
+<Warning>
+  **Important:** Deleting a specialty that has associated doctors will fail due to foreign key constraints. Remove or reassign all doctors before deleting the specialty.
+</Warning>
+
+## Relationship with Doctors
+
+### Doctor-Specialty Association
+
+When creating a doctor, you must specify their specialty:
+
+```json
+{
+  "usuarioId": 15,
+  "especialidadId": 3,  // Cardiología
+  "urlFoto": "/uploads/doctors/maria-garcia.jpg"
+}
+```
+
+The relationship is stored in the doctor entity:
+
+```java
+@ManyToOne(optional = false)
+@JoinColumn(name = "especialidad_id")
+private Especialidad especialidad;
+```
+
+Reference: Medico.java:18-20
+
+### Finding Doctors by Specialty
+
+While the specialty entity has a list of doctors:
+
+```java
+@JsonIgnore
+@OneToMany(mappedBy = "especialidad", fetch = FetchType.LAZY)
+private List<Medico> medicos = new ArrayList<>();
+```
+
+Reference: Especialidad.java:23-25
+
+The `@JsonIgnore` annotation prevents this list from appearing in API responses for performance reasons.
+
+<Note>
+  To find doctors by specialty, filter the doctor list on the client side after fetching all doctors, or implement a custom service method to query doctors by specialty ID.
+</Note>
+
+## Common Specialties
+
+Typical medical specialties in the system might include:
+
+<CardGroup cols={3}>
+  <Card title="Cardiología" icon="heart-pulse">
+    Heart and cardiovascular system
+  </Card>
+  
+  <Card title="Dermatología" icon="hand-dots">
+    Skin, hair, and nails
+  </Card>
+  
+  <Card title="Pediatría" icon="baby">
+    Children's health
+  </Card>
+  
+  <Card title="Neurología" icon="brain">
+    Nervous system disorders
+  </Card>
+  
+  <Card title="Traumatología" icon="bone">
+    Musculoskeletal injuries
+  </Card>
+  
+  <Card title="Oftalmología" icon="eye">
+    Eye care and vision
+  </Card>
+</CardGroup>
+
+## Appointment Integration
+
+Specialties are displayed when viewing appointments:
+
+```java
+private CitaResponseDTO buildResponse(Cita c) {
+    return new CitaResponseDTO(
+        c.getId(),
+        c.getPaciente() != null ? c.getPaciente().getId() : null,
+        c.getPaciente() != null ? c.getPaciente().getNombre() : null,
+        c.getMedico().getId(),
+        c.getMedico().getUsuario().getNombre(),
+        c.getMedico().getEspecialidad().getNombre(),  // Specialty name included
+        c.getFechaHora(),
+        c.getEstado(),
+        c.getMotivo()
+    );
+}
+```
+
+Reference: CitaService.java:351-363
+
+**Example appointment response:**
+```json
+{
+  "id": 123,
+  "pacienteId": 45,
+  "pacienteNombre": "Juan Pérez",
+  "medicoId": 7,
+  "medicoNombre": "Dra. María García",
+  "especialidadNombre": "Cardiología",
+  "fechaHora": "2026-03-15T10:00:00",
+  "estado": "CONFIRMADA",
+  "motivo": "Control de presión arterial"
+}
+```
+
+<Tip>
+  Including the specialty name in appointment responses helps patients quickly identify the type of medical care they'll receive.
+</Tip>
+
+## Data Validation
+
+### Specialty Name Requirements
+
+The specialty name has strict validation:
+
+```java
+@NotBlank(message = "El nombre de la especialidad es obligatorio")
+@Column(nullable = false, unique = true)
+private String nombre;
+```
+
+Reference: Especialidad.java:19-21
+
+**Validation Rules:**
+- Cannot be null or empty
+- Must be unique across all specialties
+- No minimum/maximum length specified (database dependent)
+
+### Error Handling
+
+**Duplicate Specialty:**
+```json
+{
+  "error": "Constraint violation",
+  "message": "Specialty name already exists"
+}
+```
+
+**Missing Name:**
+```json
+{
+  "error": "Validation failed",
+  "message": "El nombre de la especialidad es obligatorio"
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Standard Naming" icon="spell-check">
+    Use standardized medical specialty names for consistency
+  </Card>
+  
+  <Card title="Check Before Delete" icon="triangle-exclamation">
+    Always verify no doctors are assigned before deleting a specialty
+  </Card>
+  
+  <Card title="Hierarchical Organization" icon="sitemap">
+    Consider sub-specialties with descriptive names (e.g., "Cardiología Pediátrica")
+  </Card>
+  
+  <Card title="Maintain Historical Data" icon="clock-rotate-left">
+    Keep specialties even if currently unused to preserve historical appointment data
+  </Card>
+</CardGroup>
+
+## Common Operations
+
+### Setup New Hospital Department
+
+1. **Create Specialty**
+   ```bash
+   POST /api/especialidades
+   {
+     "nombre": "Oncología"
+   }
+   ```
+
+2. **Create User Accounts** for doctors
+   ```bash
+   POST /auth/register
+   {
+     "nombre": "Dr. Carlos Ruiz",
+     "email": "carlos.ruiz@hospital.com",
+     "password": "securePassword123",
+     "rol": "MEDICO"
+   }
+   ```
+
+3. **Assign Doctors to Specialty**
+   ```bash
+   POST /api/medicos
+   {
+     "usuarioId": 20,
+     "especialidadId": 8,  // Oncología
+     "urlFoto": "/uploads/doctors/carlos-ruiz.jpg"
+   }
+   ```
+
+4. **System Auto-generates Appointments**
+   - Appointments automatically created for new doctors
+   - Patients can now book with the new specialty
+
+### Renaming a Specialty
+
+To rename a specialty while preserving doctor associations:
+
+```bash
+PATCH /api/especialidades/3
+{
+  "nombre": "Cardiología y Medicina Vascular"
+}
+```
+
+All existing doctors and appointments maintain their relationships.
+
+### Managing Specialty Lifecycle
+
+**Adding a New Specialty:**
+- Create the specialty first
+- Then add doctors to it
+
+**Removing a Specialty:**
+1. Check for associated doctors
+2. Reassign doctors to other specialties
+3. Delete the specialty
+
+**Consolidating Specialties:**
+1. Create new consolidated specialty
+2. Update doctors to new specialty
+3. Delete old specialties
+
+## Performance Considerations
+
+### Lazy Loading
+
+The doctor list is lazy-loaded:
+
+```java
+@OneToMany(mappedBy = "especialidad", fetch = FetchType.LAZY)
+private List<Medico> medicos = new ArrayList<>();
+```
+
+Reference: Especialidad.java:24-25
+
+<Note>
+  This means doctors are only loaded when explicitly accessed, reducing memory usage when listing specialties.
+</Note>
+
+### Caching Recommendations
+
+Consider caching specialty data:
+- Specialties change infrequently
+- Read-heavy workload (patients browsing)
+- Small dataset size
+- Reduces database load
+
+## Security Considerations
+
+### Public Read Access
+
+Specialty endpoints are public by design:
+
+```java
+auth.requestMatchers(HttpMethod.GET, "/api/especialidades/**").permitAll()
+```
+
+Reference: SecurityConfig.java:129
+
+This allows patients to browse specialties before creating an account.
+
+### Write Protection
+
+All modifications require admin privileges:
+
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+```
+
+Protects against:
+- Unauthorized specialty creation
+- Malicious renaming
+- Accidental deletion
+
+## Related Documentation
+
+- [Doctors](/features/doctors) - How doctors relate to specialties
+- [Appointments](/features/appointments) - Specialty information in appointments
+- [User Roles](/features/user-roles) - Admin permissions for specialty management
+- [API Reference](/api/specialties/list) - Complete specialty API documentation

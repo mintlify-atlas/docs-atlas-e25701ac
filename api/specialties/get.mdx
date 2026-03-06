@@ -1,0 +1,48 @@
+---
+title: 'Get Medical Specialty'
+api: 'GET /api/especialidades/{id}'
+---
+
+Retrieves detailed information about a specific medical specialty by its ID. This endpoint is public to allow patients to view specialty details.
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the medical specialty
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long" required>
+  Unique identifier for the specialty
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Name of the medical specialty
+</ResponseField>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 1,
+  "nombre": "Cardiología"
+}
+```
+
+```json 404 - Not Found
+{
+  "error": "Specialty not found",
+  "message": "No specialty exists with ID: 999"
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+- View details of a specific medical specialty
+- Verify specialty information before booking
+- Display specialty details on doctor profile pages
+
+<Note>
+  This endpoint is publicly accessible and does not require authentication.
+</Note>

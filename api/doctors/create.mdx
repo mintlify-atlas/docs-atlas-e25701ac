@@ -1,0 +1,175 @@
+---
+title: "Create Doctor"
+api: "POST /api/medicos"
+description: "Create a new doctor profile by linking an existing usuario to a medical specialty."
+---
+
+## Authentication
+
+This endpoint requires authentication and ADMIN role authorization.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with ADMIN privileges
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  Must be `application/json`
+</ParamField>
+
+## Request Body
+
+<ParamField body="usuarioId" type="long" required>
+  ID of the existing usuario to associate with this doctor profile. The usuario must exist and not already be linked to another doctor.
+</ParamField>
+
+<ParamField body="especialidadId" type="long" required>
+  ID of the medical specialty (especialidad) for this doctor. The specialty must exist in the system.
+</ParamField>
+
+<ParamField body="urlFoto" type="string" required>
+  URL to the doctor's profile photo. This field is mandatory.
+</ParamField>
+
+## Response
+
+Returns the newly created doctor object with complete information.
+
+<ResponseField name="id" type="long">
+  Unique identifier for the newly created doctor
+</ResponseField>
+
+<ResponseField name="usuarioId" type="long">
+  ID of the associated usuario
+</ResponseField>
+
+<ResponseField name="nombreUsuario" type="string">
+  Full name of the doctor from usuario entity
+</ResponseField>
+
+<ResponseField name="emailUsuario" type="string">
+  Email address from usuario entity
+</ResponseField>
+
+<ResponseField name="especialidadId" type="long">
+  ID of the doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="nombreEspecialidad" type="string">
+  Name of the medical specialty
+</ResponseField>
+
+<ResponseField name="urlFoto" type="string">
+  URL to the doctor's profile photo
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X POST "https://api.soraka.com/api/medicos" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "usuarioId": 12,
+    "especialidadId": 3,
+    "urlFoto": "https://storage.soraka.com/doctors/new-doctor.jpg"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.com/api/medicos', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    usuarioId: 12,
+    especialidadId: 3,
+    urlFoto: 'https://storage.soraka.com/doctors/new-doctor.jpg'
+  })
+});
+
+const newDoctor = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://api.soraka.com/api/medicos',
+    headers={
+        'Authorization': 'Bearer YOUR_ADMIN_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'usuarioId': 12,
+        'especialidadId': 3,
+        'urlFoto': 'https://storage.soraka.com/doctors/new-doctor.jpg'
+    }
+)
+
+new_doctor = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 5,
+  "usuarioId": 12,
+  "nombreUsuario": "Dr. María Rodríguez",
+  "emailUsuario": "maria.rodriguez@soraka.com",
+  "especialidadId": 3,
+  "nombreEspecialidad": "Pediatría",
+  "urlFoto": "https://storage.soraka.com/doctors/new-doctor.jpg"
+}
+```
+
+```json 400 - Validation Error
+{
+  "error": "Bad Request",
+  "message": "El usuario es obligatorio"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Authentication required"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Forbidden",
+  "message": "ADMIN role required"
+}
+```
+
+```json 409 - Conflict
+{
+  "error": "Conflict",
+  "message": "Usuario is already associated with another doctor"
+}
+```
+</ResponseExample>
+
+## Important Notes
+
+<Note>
+  **One-to-One Relationship**: Each Usuario can only be linked to one Medico profile. The `usuario_id` column in the medicos table has a unique constraint.
+</Note>
+
+<Warning>
+  Before creating a doctor, ensure:
+  - The Usuario exists and has the appropriate role
+  - The Usuario is not already linked to another Medico
+  - The Especialidad exists in the system
+  - The photo URL is accessible and valid
+</Warning>
+
+## Entity Relationships
+
+- **Medico → Usuario**: One-to-one relationship (required, unique)
+- **Medico → Especialidad**: Many-to-one relationship (required)
+
+The created Medico entity establishes these relationships during creation and cannot exist without both a Usuario and Especialidad.

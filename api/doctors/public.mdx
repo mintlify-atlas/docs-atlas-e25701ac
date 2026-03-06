@@ -1,0 +1,165 @@
+---
+title: "List Public Doctors"
+api: "GET /api/medicos/publicos"
+description: "Retrieve a public list of doctors with limited information for appointment booking interfaces. No authentication required."
+---
+
+## Authentication
+
+This endpoint is **publicly accessible** and does not require authentication.
+
+<Info>
+  This is the only doctor endpoint that can be accessed without authentication. It returns limited information suitable for public-facing appointment booking interfaces.
+</Info>
+
+## Response
+
+Returns an array of doctor objects with limited public information.
+
+<ResponseField name="id" type="long">
+  Unique identifier for the doctor
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  Full name of the doctor
+</ResponseField>
+
+<ResponseField name="especialidad" type="string">
+  Name of the doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="urlFoto" type="string">
+  URL to the doctor's profile photo
+</ResponseField>
+
+<Note>
+  **Limited Data**: This endpoint returns MedicoPublicoDTO which excludes sensitive information like email addresses and internal IDs (usuarioId, especialidadId).
+</Note>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.soraka.com/api/medicos/publicos"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.com/api/medicos/publicos', {
+  method: 'GET'
+});
+
+const publicDoctors = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get('https://api.soraka.com/api/medicos/publicos')
+public_doctors = response.json()
+```
+
+```java Java
+HttpClient client = HttpClient.newHttpClient();
+HttpRequest request = HttpRequest.newBuilder()
+    .uri(URI.create("https://api.soraka.com/api/medicos/publicos"))
+    .GET()
+    .build();
+
+HttpResponse<String> response = client.send(request, 
+    HttpResponse.BodyHandlers.ofString());
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+[
+  {
+    "id": 1,
+    "nombre": "Dr. Ana García",
+    "especialidad": "Cardiología",
+    "urlFoto": "https://storage.soraka.com/doctors/ana-garcia.jpg"
+  },
+  {
+    "id": 2,
+    "nombre": "Dr. Carlos Mendoza",
+    "especialidad": "Medicina General",
+    "urlFoto": "https://storage.soraka.com/doctors/carlos-mendoza.jpg"
+  },
+  {
+    "id": 3,
+    "nombre": "Dra. María Rodríguez",
+    "especialidad": "Pediatría",
+    "urlFoto": "https://storage.soraka.com/doctors/maria-rodriguez.jpg"
+  }
+]
+```
+</ResponseExample>
+
+## Use Cases
+
+- **Appointment Booking UI**: Display available doctors to patients browsing the appointment booking interface
+- **Public Doctor Directory**: Show a searchable list of doctors on the hospital website
+- **Mobile App**: Populate doctor selection screens in patient-facing mobile applications
+- **Third-Party Integrations**: Allow partner systems to retrieve basic doctor information
+
+## Comparison with Full List Endpoint
+
+| Feature | `/api/medicos/publicos` | `/api/medicos` |
+|---------|-------------------------|----------------|
+| Authentication | Not required | Required (ADMIN) |
+| Email Address | Not included | Included |
+| Usuario ID | Not included | Included |
+| Especialidad ID | Not included | Included |
+| Doctor Name | Included | Included |
+| Specialty Name | Included | Included |
+| Photo URL | Included | Included |
+| Use Case | Public booking | Admin management |
+
+## Data Privacy
+
+<Check>
+  **GDPR/Privacy Compliant**: This endpoint is designed to expose only non-sensitive information that is appropriate for public access:
+  - No email addresses
+  - No internal system IDs (except the doctor's public ID)
+  - Only professional information (name, specialty, photo)
+</Check>
+
+## Performance Considerations
+
+- This endpoint may return a large dataset if the hospital has many doctors
+- Consider implementing pagination if the number of doctors grows significantly
+- Cache this response on the client side as doctor listings change infrequently
+- The response can be cached at the CDN level for better performance
+
+## Example Integration
+
+```javascript React Example
+import { useEffect, useState } from 'react';
+
+function DoctorSelector() {
+  const [doctors, setDoctors] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('https://api.soraka.com/api/medicos/publicos')
+      .then(res => res.json())
+      .then(data => {
+        setDoctors(data);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Loading doctors...</div>;
+
+  return (
+    <div className="doctor-grid">
+      {doctors.map(doctor => (
+        <div key={doctor.id} className="doctor-card">
+          <img src={doctor.urlFoto} alt={doctor.nombre} />
+          <h3>{doctor.nombre}</h3>
+          <p>{doctor.especialidad}</p>
+          <button>Book Appointment</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+```

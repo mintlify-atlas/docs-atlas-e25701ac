@@ -1,0 +1,123 @@
+---
+title: "Get My Appointments"
+api: "GET /api/citas/mis-citas"
+description: "Retrieve all appointments for the authenticated patient"
+---
+
+## Authorization
+
+This endpoint requires `PACIENTE` authority. Only patients can access their own appointments.
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://api.soraka.hospital/api/citas/mis-citas \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.hospital/api/citas/mis-citas', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+const myAppointments = await response.json();
+```
+
+```java Java
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas/mis-citas"))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .GET()
+  .build();
+HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+[
+  {
+    "id": 42,
+    "pacienteId": 5,
+    "pacienteNombre": "Juan Pérez",
+    "medicoId": 2,
+    "medicoNombre": "Dr. María García",
+    "medicoEspecialidad": "Cardiología",
+    "fechaHora": "2026-03-15T10:00:00",
+    "estado": "CONFIRMADA",
+    "motivo": "Dolor en el pecho"
+  },
+  {
+    "id": 58,
+    "pacienteId": 5,
+    "pacienteNombre": "Juan Pérez",
+    "medicoId": 7,
+    "medicoNombre": "Dr. Ana Martínez",
+    "medicoEspecialidad": "Medicina General",
+    "fechaHora": "2026-03-22T14:30:00",
+    "estado": "CONFIRMADA",
+    "motivo": "Chequeo anual"
+  }
+]
+```
+
+```json 403 - Forbidden
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access denied",
+  "path": "/api/citas/mis-citas"
+}
+```
+
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="id" type="integer" required>
+  Unique identifier for the appointment
+</ResponseField>
+
+<ResponseField name="pacienteId" type="integer" required>
+  Patient's user ID (matches the authenticated user)
+</ResponseField>
+
+<ResponseField name="pacienteNombre" type="string" required>
+  Patient's full name
+</ResponseField>
+
+<ResponseField name="medicoId" type="integer" required>
+  Doctor's ID
+</ResponseField>
+
+<ResponseField name="medicoNombre" type="string" required>
+  Doctor's full name
+</ResponseField>
+
+<ResponseField name="medicoEspecialidad" type="string" required>
+  Doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="fechaHora" type="string" required>
+  Appointment date and time in ISO-8601 format
+</ResponseField>
+
+<ResponseField name="estado" type="enum" required>
+  Appointment status: `CONFIRMADA`, `REALIZADA`, or `CADUCADA`
+</ResponseField>
+
+<ResponseField name="motivo" type="string" required>
+  Reason for the appointment provided when booking
+</ResponseField>
+
+## Notes
+
+- Automatically filters appointments for the authenticated patient
+- Returns all appointments regardless of their status or date
+- Patient ID is extracted from the authentication token
+- Only patients have access to this endpoint

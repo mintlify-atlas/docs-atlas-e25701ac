@@ -1,0 +1,134 @@
+---
+title: Introduction
+description: Welcome to Soraka, a comprehensive hospital appointment booking and management system
+---
+
+# Welcome to Soraka
+
+Soraka is a full-stack web application designed for managing hospital appointments and medical consultations. The platform enables patients to browse available doctors, view open appointment slots, and book consultations, while providing doctors and administrators with powerful tools to manage the entire appointment lifecycle.
+
+<Note>
+This project is currently under active development. Some features are still being built and refined.
+</Note>
+
+## What is Soraka?
+
+Soraka provides a complete appointment management solution for healthcare facilities. Patients can discover available doctors by specialty, view their schedules, and reserve appointments. Medical professionals can create and manage appointment slots, while administrators maintain full control over users, doctors, specialties, and system configuration.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="users">
+    Administrator-managed user registration with email verification and JWT-based authentication
+  </Card>
+  <Card title="Role-Based Access" icon="shield">
+    Three-tier permission system with hierarchical role inheritance (ADMIN > MEDICO > PACIENTE)
+  </Card>
+  <Card title="Doctor & Specialty Management" icon="user-doctor">
+    Comprehensive management of medical professionals and their specializations
+  </Card>
+  <Card title="Appointment Booking" icon="calendar-check">
+    View available appointments, book consultations, and cancel reservations
+  </Card>
+  <Card title="Email Verification" icon="envelope">
+    Secure account activation through email confirmation tokens
+  </Card>
+  <Card title="JWT Security" icon="lock">
+    Stateless authentication with 1-hour token validity and protected API endpoints
+  </Card>
+</CardGroup>
+
+## Role-Based Access System
+
+Soraka implements a hierarchical role-based access control (RBAC) system with three distinct user roles:
+
+```
+ADMIN > MEDICO > PACIENTE
+```
+
+This hierarchy means that an **ADMIN** inherits all permissions from MEDICO and PACIENTE roles, while a **MEDICO** inherits permissions from the PACIENTE role.
+
+| Role | Permissions |
+|---|---|
+| **ADMIN** | Complete system control: manage users, doctors, specialties, and all appointments |
+| **MEDICO** | Create, modify, delete, and view appointments. Register new users |
+| **PACIENTE** | View available appointments, book consultations, and cancel own appointments |
+
+## Technology Stack
+
+Soraka is built with modern, production-ready technologies:
+
+### Backend
+
+- **Java 21** with **Spring Boot 3.5.9**
+- **Spring Security + JWT** for stateless authentication
+- **Spring Data JPA / Hibernate** for database access
+- **MySQL 8.0** as the relational database
+- **Spring Mail** for email verification
+
+### Frontend
+
+- **React 18.2** with **Vite** build system
+- **React Router 7.13** for navigation
+- **Tailwind CSS** with **Material Tailwind** components
+- **Heroicons** and **Lucide React** for icons
+- **jwt-decode** for token management
+
+### Infrastructure
+
+- **Docker** and **Docker Compose** for containerization
+- **phpMyAdmin** for database administration
+- Timezone configured for **Europe/Madrid**
+
+## Security & Authentication
+
+Soraka implements a robust JWT-based authentication flow:
+
+1. Administrators register users whose accounts start in an **inactive** state
+2. A **confirmation email** with a unique token is sent to the user
+3. Users activate their accounts by clicking the email link
+4. Upon activation, users can log in and receive a **JWT token valid for 1 hour**
+5. All protected endpoints require the token in the `Authorization: Bearer <token>` header
+
+The JWT token includes user name, email, and role as additional claims for authorization decisions.
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get Soraka running locally with Docker in minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/auth/login">
+    Explore the REST API endpoints and authentication
+  </Card>
+  <Card title="User Management" icon="users" href="/features/user-roles">
+    Learn about user registration and role management
+  </Card>
+  <Card title="Appointments" icon="calendar" href="/features/appointments">
+    Understand the appointment booking workflow
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+```
+Soraka/
+├── backend/
+│   └── src/main/java/com/hospital/Soraka/
+│       ├── config/         # Application configuration
+│       ├── controller/     # REST controllers
+│       ├── dto/            # Data Transfer Objects
+│       ├── entity/         # JPA entities
+│       ├── enums/          # Enumerations
+│       ├── exception/      # Custom exceptions
+│       ├── repository/     # Spring Data repositories
+│       ├── security/       # JWT and Spring Security config
+│       └── service/        # Business logic
+├── frontend/               # React application
+├── docker-compose.yml      # Container orchestration
+└── dockerfile             # Backend container definition
+```
+
+## Next Steps
+
+Ready to get started? Follow the [Quickstart Guide](/quickstart) to set up Soraka locally, or dive into the API documentation to understand the available endpoints.

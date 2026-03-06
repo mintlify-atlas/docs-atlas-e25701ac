@@ -1,0 +1,90 @@
+---
+title: "Delete Appointment"
+api: "DELETE /api/citas/{id}"
+description: "Permanently delete an appointment from the system"
+---
+
+## Authorization
+
+This endpoint requires one of the following authorities:
+- `MEDICO`
+- `ADMIN`
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the appointment to delete
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X DELETE https://api.soraka.hospital/api/citas/42 \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const appointmentId = 42;
+const response = await fetch(`https://api.soraka.hospital/api/citas/${appointmentId}`, {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+
+if (response.ok) {
+  console.log('Appointment deleted successfully');
+}
+```
+
+```java Java
+Long appointmentId = 42L;
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas/" + appointmentId))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .DELETE()
+  .build();
+HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "message": "Cita eliminada exitosamente"
+}
+```
+
+```json 404 - Not Found
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Cita no encontrada",
+  "path": "/api/citas/42"
+}
+```
+
+```json 403 - Forbidden
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access denied",
+  "path": "/api/citas/42"
+}
+```
+
+</ResponseExample>
+
+## Notes
+
+- Only doctors and administrators can delete appointments
+- This operation is permanent and cannot be undone
+- Deleting an appointment removes it completely from the system
+- Consider using the [cancel endpoint](/api/appointments/cancel) instead if you want to keep the appointment record but mark it as cancelled
+- If you need to free up a time slot, cancelling returns the appointment to `DISPONIBLE` status
+
+<Warning>
+  Deleting an appointment is a permanent action. If you want to preserve the appointment history, use the cancel endpoint instead.
+</Warning>

@@ -1,0 +1,126 @@
+---
+title: "List Available Appointments"
+api: "GET /api/citas/disponibles"
+description: "Retrieve all available appointment slots with future dates"
+---
+
+## Authorization
+
+This endpoint requires authentication with any of the following authorities:
+- `PACIENTE`
+- `MEDICO`
+- `ADMIN`
+
+<RequestExample>
+
+```bash cURL
+curl -X GET https://api.soraka.hospital/api/citas/disponibles \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.hospital/api/citas/disponibles', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+const availableSlots = await response.json();
+```
+
+```java Java
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas/disponibles"))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .GET()
+  .build();
+HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+[
+  {
+    "id": 15,
+    "pacienteId": null,
+    "pacienteNombre": null,
+    "medicoId": 2,
+    "medicoNombre": "Dr. María García",
+    "medicoEspecialidad": "Cardiología",
+    "fechaHora": "2026-03-20T09:00:00",
+    "estado": "DISPONIBLE",
+    "motivo": null
+  },
+  {
+    "id": 16,
+    "pacienteId": null,
+    "pacienteNombre": null,
+    "medicoId": 3,
+    "medicoNombre": "Dr. Carlos López",
+    "medicoEspecialidad": "Pediatría",
+    "fechaHora": "2026-03-21T11:30:00",
+    "estado": "DISPONIBLE",
+    "motivo": null
+  }
+]
+```
+
+```json 401 - Unauthorized
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Full authentication is required",
+  "path": "/api/citas/disponibles"
+}
+```
+
+</ResponseExample>
+
+## Response Fields
+
+<ResponseField name="id" type="integer" required>
+  Unique identifier for the appointment slot
+</ResponseField>
+
+<ResponseField name="pacienteId" type="integer">
+  Always `null` for available appointments
+</ResponseField>
+
+<ResponseField name="pacienteNombre" type="string">
+  Always `null` for available appointments
+</ResponseField>
+
+<ResponseField name="medicoId" type="integer" required>
+  Doctor's ID
+</ResponseField>
+
+<ResponseField name="medicoNombre" type="string" required>
+  Doctor's full name
+</ResponseField>
+
+<ResponseField name="medicoEspecialidad" type="string" required>
+  Doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="fechaHora" type="string" required>
+  Appointment date and time in ISO-8601 format (always in the future)
+</ResponseField>
+
+<ResponseField name="estado" type="enum" required>
+  Always `DISPONIBLE` for this endpoint
+</ResponseField>
+
+<ResponseField name="motivo" type="string">
+  Always `null` for available appointments
+</ResponseField>
+
+## Notes
+
+- Only returns appointments with status `DISPONIBLE`
+- Only returns appointments with future dates
+- Patients can use this endpoint to find slots they can book
+- Doctors and admins can use this to view available capacity

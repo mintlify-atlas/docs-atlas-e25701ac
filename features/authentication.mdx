@@ -1,0 +1,196 @@
+---
+title: 'Authentication'
+description: 'JWT-based authentication system with email verification'
+icon: 'key'
+---
+
+## Overview
+
+Soraka uses a secure JWT-based authentication system with email verification to ensure only authorized users can access the application.
+
+## Authentication Flow
+
+### 1. User Registration
+
+Only administrators can register new users through the `/auth/register` endpoint.
+
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+@PostMapping("/auth/register")
+public UsuarioResponseDTO register(@RequestBody UsuarioPostDTO dto) {
+    return usuarioService.createUsuario(dto);
+}
+```
+
+<Note>
+  New accounts are created with `isActivo = false` and must be activated via email confirmation before users can log in.
+</Note>
+
+### 2. Email Verification
+
+After registration, users receive a confirmation email with a unique token. The account is activated by clicking the link.
+
+**Endpoint:** `GET /auth/confirmar?token={token}`
+
+```java
+@GetMapping("/confirmar")
+public ResponseEntity<String> confirmar(@RequestParam String token) {
+    confirmacionService.confirmarCuenta(token);
+    return ResponseEntity.ok("Cuenta activada correctamente");
+}
+```
+
+<Warning>
+  Users cannot log in until their account is activated. The authentication will fail with inactive accounts.
+</Warning>
+
+### 3. Login
+
+Authenticated users receive a JWT token that must be included in subsequent API requests.
+
+**Endpoint:** `POST /auth/login`
+
+**Request:**
+```json
+{
+  "email": "doctor@hospital.com",
+  "password": "securePassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+## JWT Token Details
+
+### Token Generation
+
+Tokens are generated using the `JwtService` with custom claims:
+
+```java
+Map<String, Object> claims = new HashMap<>();
+claims.put("nombre", ((Usuario) userDetails).getNombre());
+claims.put("rol", ((Usuario) userDetails).getRol());
+claims.put("Email", ((Usuario) userDetails).getEmail());
+
+String token = jwtService.generateToken(userDetails, claims);
+```
+
+Reference: AuthController.java:81-86
+
+### Token Expiration
+
+<Note>
+  JWT tokens expire after **1 hour** (3600 seconds).
+</Note>
+
+From JwtService.java:49:
+```java
+.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60))
+```
+
+### Token Validation
+
+The `JwtAuthenticationFilter` validates tokens on every request:
+
+1. Extracts the token from the `Authorization` header
+2. Validates the signature using the secret key
+3. Checks if the token has expired
+4. Verifies the username matches the authenticated user
+
+```java
+public boolean isTokenValid(String token, UserDetails userDetails) {
+    final String username = extractUsername(token);
+    return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+}
+```
+
+Reference: JwtService.java:79-82
+
+## Security Configuration
+
+### Session Management
+
+The application uses **stateless sessions** - no server-side session storage:
+
+```java
+.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+```
+
+### Password Encoding
+
+Passwords are hashed using BCrypt:
+
+```java
+@Bean
+public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+}
+```
+
+Reference: SecurityConfig.java:71-73
+
+### Public Endpoints
+
+The following endpoints are accessible without authentication:
+
+- `POST /auth/login` - User login
+- `GET /auth/confirmar` - Email confirmation
+- `GET /api/medicos/publicos` - Public doctor listing
+- `GET /api/especialidades/**` - Specialty information
+- `GET /uploads/**` - Static file access
+
+<Tip>
+  All other endpoints require a valid JWT token in the `Authorization: Bearer {token}` header.
+</Tip>
+
+## Authentication Errors
+
+### Common Error Scenarios
+
+1. **Invalid credentials** - Wrong email or password
+2. **Account not activated** - User hasn't confirmed email (isActivo = false)
+3. **Token expired** - JWT token is older than 1 hour
+4. **Invalid token** - Tampered or malformed JWT
+5. **Missing token** - No Authorization header provided
+
+### Error Handling
+
+Spring Security automatically handles authentication failures:
+
+```java
+Authentication auth = authenticationManager.authenticate(
+    new UsernamePasswordAuthenticationToken(dto.getEmail(), dto.getPassword())
+);
+```
+
+Reference: AuthController.java:75-77
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Secure Token Storage" icon="lock">
+    Store JWT tokens securely in the client (e.g., httpOnly cookies or secure storage)
+  </Card>
+  
+  <Card title="Token Refresh" icon="rotate">
+    Implement token refresh logic before the 1-hour expiration
+  </Card>
+  
+  <Card title="HTTPS Only" icon="shield">
+    Always transmit tokens over HTTPS in production
+  </Card>
+  
+  <Card title="Secret Key" icon="key">
+    Use a strong secret key stored in environment variables (jwt.secret)
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [User Roles](/features/user-roles) - Understanding role-based access control
+- [API Reference](/api/auth/login) - Complete authentication API documentation

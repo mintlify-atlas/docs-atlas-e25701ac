@@ -1,0 +1,106 @@
+---
+title: "Confirm Account"
+api: "GET /auth/confirmar"
+---
+
+Activate a user account using the confirmation token sent via email during registration.
+
+## Authentication
+
+This is a public endpoint and does not require authentication.
+
+## Query Parameters
+
+<ParamField query="token" type="string" required>
+  The unique confirmation token sent to the user's email address during registration. This token is included in the confirmation link.
+  
+  **Validation:**
+  - Required
+  - Must exist in the database
+  - Must not be expired
+</ParamField>
+
+## Response
+
+<ResponseField name="200 OK" type="string">
+  Success message: `"Cuenta activada correctamente"`
+  
+  The user account is now active (`isActivo = true`) and can be used to log in.
+</ResponseField>
+
+## Error Responses
+
+<ResponseField name="400 Bad Request">
+  Token parameter is missing from the request.
+</ResponseField>
+
+<ResponseField name="404 Not Found">
+  Token does not exist in the database or has already been used.
+</ResponseField>
+
+<ResponseField name="410 Gone">
+  Token has expired. The user must request a new confirmation email.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X GET "https://api.soraka.hospital/auth/confirmar?token=a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+```
+
+## Example Response
+
+```text
+Cuenta activada correctamente
+```
+
+## Confirmation Flow
+
+1. User registers via the `/auth/register` endpoint
+2. System generates a unique token and associates it with the user
+3. System sends an email containing a confirmation link: `https://app.soraka.hospital/confirmar?token=...`
+4. User clicks the link in their email
+5. Frontend or email client makes a GET request to this endpoint with the token
+6. System validates the token:
+   - Checks if token exists
+   - Checks if token has not expired
+   - Verifies the token hasn't already been used
+7. If valid, sets user's `isActivo` to `true`
+8. User can now log in successfully
+
+## Token Lifecycle
+
+<Expandable title="Token Management Details">
+
+**Token Generation:**
+- Generated automatically during user registration
+- Stored in the `TokenConfirmacion` entity
+- Linked to the user via one-to-one relationship
+- Contains an expiration timestamp (`fechaExpiracion`)
+
+**Token Expiration:**
+- Tokens expire after a configured duration (typically 24 hours)
+- Expired tokens cannot be used to activate accounts
+- Users with expired tokens must contact an administrator for a new confirmation email
+
+**Token Usage:**
+- Each token can only be used once
+- After successful confirmation, the token should be considered consumed
+- Attempting to reuse a token will result in an error
+
+</Expandable>
+
+## Implementation Notes
+
+- The confirmation process is handled by `ConfirmacionService.confirmarCuenta(token)`
+- Token validation includes checking existence, expiration, and user association
+- Once confirmed, the user's `isActivo` field is set to `true` in the database
+- The token-user relationship is managed via the `TokenConfirmacion` entity
+- This endpoint is typically called automatically when users click email links, not manually
+
+## Security Considerations
+
+- Tokens should be cryptographically random and unpredictable
+- Tokens should have a reasonable expiration time to prevent indefinite pending accounts
+- Rate limiting should be applied to prevent token enumeration attacks
+- Tokens should only be transmitted over HTTPS

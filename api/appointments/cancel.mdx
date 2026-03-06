@@ -1,0 +1,126 @@
+---
+title: "Cancel Appointment"
+api: "POST /api/citas/{id}/cancelar"
+description: "Cancel a confirmed appointment and return it to available status"
+---
+
+## Authorization
+
+This endpoint requires authentication with any of the following authorities:
+- `PACIENTE` - Can cancel their own appointments
+- `MEDICO` - Can cancel any appointment
+- `ADMIN` - Can cancel any appointment
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the appointment to cancel
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://api.soraka.hospital/api/citas/42/cancelar \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const appointmentId = 42;
+const response = await fetch(`https://api.soraka.hospital/api/citas/${appointmentId}/cancelar`, {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+
+if (response.ok) {
+  console.log('Appointment cancelled successfully');
+}
+```
+
+```java Java
+Long appointmentId = 42L;
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas/" + appointmentId + "/cancelar"))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .POST(HttpRequest.BodyPublishers.noBody())
+  .build();
+HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "message": "Cita cancelada exitosamente"
+}
+```
+
+```json 403 - Forbidden
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "No tienes permiso para cancelar esta cita",
+  "path": "/api/citas/42/cancelar"
+}
+```
+
+```json 404 - Not Found
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Cita no encontrada",
+  "path": "/api/citas/42/cancelar"
+}
+```
+
+```json 400 - Bad Request
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "La cita no puede ser cancelada",
+  "path": "/api/citas/42/cancelar"
+}
+```
+
+</ResponseExample>
+
+## Behavior
+
+### For Patients
+
+When a patient cancels an appointment:
+- The patient can only cancel their own appointments
+- The appointment status returns to `DISPONIBLE`
+- The `pacienteId` field is cleared (set to null)
+- The `motivo` field is cleared (set to null)
+- The appointment becomes available for other patients to book
+
+### For Doctors and Admins
+
+When a doctor or admin cancels an appointment:
+- They can cancel any appointment in the system
+- The same status change occurs (returns to `DISPONIBLE`)
+- Patient information is cleared from the appointment
+
+## Notes
+
+- Cancelling preserves the appointment slot in the system (unlike [delete](/api/appointments/delete))
+- The appointment automatically becomes available for other patients
+- The time slot is freed up and will appear in the [available appointments](/api/appointments/available) list
+- Patients can only cancel confirmed appointments that belong to them
+- Business rules regarding cancellation policies are enforced at the service layer
+
+<Info>
+  **Cancel vs Delete**: Use cancel when you want to free up a time slot for other patients. Use [delete](/api/appointments/delete) only when you want to permanently remove the appointment slot from the system.
+</Info>
+
+## Authorization Logic
+
+The service layer validates that:
+- Patients can only cancel appointments where they are the assigned patient
+- Doctors and admins can cancel any appointment
+- The appointment must be in a cancellable state

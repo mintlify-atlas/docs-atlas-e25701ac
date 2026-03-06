@@ -1,0 +1,186 @@
+---
+title: System Architecture Overview
+description: High-level architecture of the Soraka hospital appointment booking system
+---
+
+## Introduction
+
+Soraka is a full-stack SaaS application for managing hospital appointments. It allows patients to browse available appointments, book appointments with specialists, and manage their reservations. Medical staff can create and manage appointments, while administrators have full control over the system.
+
+## Architecture Style
+
+Soraka follows a **three-tier architecture** pattern:
+
+```
+┌─────────────────────┐
+│   Frontend Layer    │
+│   (React + Vite)    │
+│   Port 5173         │
+└──────────┬──────────┘
+           │ REST API (JSON)
+           │ JWT Authentication
+           ↓
+┌─────────────────────┐
+│   Backend Layer     │
+│  (Spring Boot 3.5)  │
+│   Port 8080         │
+└──────────┬──────────┘
+           │ JPA/Hibernate
+           ↓
+┌─────────────────────┐
+│   Data Layer        │
+│   (MySQL 8.0)       │
+│   Port 3306         │
+└─────────────────────┘
+```
+
+## Communication Patterns
+
+### REST API
+
+The frontend communicates with the backend through a RESTful API:
+
+- **Protocol**: HTTP/HTTPS
+- **Data Format**: JSON
+- **Base URL**: `http://localhost:8080`
+- **CORS**: Configured to allow requests from `http://localhost:5173`
+
+### Authentication Flow
+
+1. **User Registration**: Admin/Doctor creates user account (inactive by default)
+2. **Email Confirmation**: User receives confirmation email with unique token
+3. **Account Activation**: User clicks email link to activate account
+4. **Login**: User submits credentials to `/auth/login`
+5. **JWT Issued**: Backend returns JWT token (valid for 1 hour)
+6. **Authenticated Requests**: Frontend includes token in `Authorization: Bearer <token>` header
+
+### Session Management
+
+- **Stateless Authentication**: No server-side sessions (JWT-based)
+- **Token Storage**: Client stores JWT in `localStorage`
+- **Token Validation**: Every protected request validates JWT
+- **Automatic Logout**: Client logs out on token expiration
+
+## Technology Stack
+
+### Backend
+
+<CardGroup cols={2}>
+  <Card title="Framework" icon="leaf">
+    Spring Boot 3.5.9 with Java 21
+  </Card>
+  <Card title="Security" icon="shield">
+    Spring Security + JWT (JJWT 0.11.5)
+  </Card>
+  <Card title="Data Access" icon="database">
+    Spring Data JPA + Hibernate
+  </Card>
+  <Card title="Database" icon="server">
+    MySQL 8.0
+  </Card>
+</CardGroup>
+
+### Frontend
+
+<CardGroup cols={2}>
+  <Card title="Framework" icon="react">
+    React 18.2.0
+  </Card>
+  <Card title="Build Tool" icon="bolt">
+    Vite 7.2.4
+  </Card>
+  <Card title="Routing" icon="route">
+    React Router DOM 7.13.0
+  </Card>
+  <Card title="UI Library" icon="palette">
+    Material Tailwind + Tailwind CSS
+  </Card>
+</CardGroup>
+
+### Infrastructure
+
+<CardGroup cols={2}>
+  <Card title="Containerization" icon="docker">
+    Docker + Docker Compose
+  </Card>
+  <Card title="Database Admin" icon="table">
+    phpMyAdmin (Port 8081)
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+The repository follows a monorepo structure with separate frontend and backend directories:
+
+```
+Soraka/
+├── backend/
+│   └── src/main/java/com/hospital/Soraka/
+│       ├── config/         # Application configuration
+│       ├── controller/     # REST API controllers
+│       ├── dto/            # Data Transfer Objects
+│       ├── entity/         # JPA entities (database models)
+│       ├── enums/          # Enumeration types (Rol, EstadoCita)
+│       ├── exception/      # Custom exception handlers
+│       ├── repository/     # Spring Data JPA repositories
+│       ├── security/       # Security configuration & JWT
+│       └── service/        # Business logic layer
+├── frontend/
+│   └── src/
+│       ├── components/     # Reusable React components
+│       ├── contexts/       # React Context providers (Auth)
+│       ├── pages/          # Page-level components
+│       ├── services/       # API client services
+│       └── assets/         # Static assets
+├── docker-compose.yml      # Multi-container orchestration
+└── dockerfile              # Backend container image
+```
+
+## Role-Based Access Control
+
+The system implements a **hierarchical role system**:
+
+```
+ADMIN > MEDICO > PACIENTE
+```
+
+- **ADMIN**: Inherits all permissions from MEDICO and PACIENTE
+- **MEDICO**: Inherits all permissions from PACIENTE
+- **PACIENTE**: Base role with limited permissions
+
+### Role Permissions
+
+| Role | Permissions |
+|------|-------------|
+| `ADMIN` | Full system control: manage users, doctors, specialties, and appointments |
+| `MEDICO` | Create/modify/delete appointments, register new users |
+| `PACIENTE` | View available appointments, book and cancel own appointments |
+
+<Note>
+Role hierarchy is configured in `SecurityConfig.java:207` using Spring Security's `RoleHierarchy`.
+</Note>
+
+## Deployment
+
+The application is containerized using Docker:
+
+- **Backend Container**: Spring Boot application (Port 8080)
+- **Database Container**: MySQL 8.0 (Port 3306)
+- **Admin Container**: phpMyAdmin (Port 8081)
+- **Frontend**: Vite dev server (Port 5173)
+
+All containers are orchestrated using Docker Compose with environment variables for configuration.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Backend Architecture" icon="server" href="/architecture/backend">
+    Explore Spring Boot package structure and dependencies
+  </Card>
+  <Card title="Frontend Architecture" icon="react" href="/architecture/frontend">
+    Learn about React components and state management
+  </Card>
+  <Card title="Security" icon="lock" href="/architecture/security">
+    Understand JWT authentication and authorization
+  </Card>
+</CardGroup>

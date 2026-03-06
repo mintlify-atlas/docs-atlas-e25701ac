@@ -1,0 +1,99 @@
+---
+title: "Delete User"
+api: "DELETE /api/usuarios/{id}"
+description: "Delete a user from the system"
+---
+
+<Warning>
+  This endpoint requires **ADMIN** role. Only administrators can delete users.
+</Warning>
+
+## Authorization
+
+This endpoint requires authentication with a valid JWT token and ADMIN role.
+
+```bash
+Authorization: Bearer <token>
+```
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the user to delete
+</ParamField>
+
+## Response
+
+Returns `204 No Content` on successful deletion.
+
+<RequestExample>
+```bash cURL
+curl --request DELETE \
+  --url https://api.soraka.com/api/usuarios/1 \
+  --header 'Authorization: Bearer <token>'
+```
+
+```javascript JavaScript
+const userId = 1;
+const response = await fetch(`https://api.soraka.com/api/usuarios/${userId}`, {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer <token>'
+  }
+});
+
+if (response.status === 204) {
+  console.log('User deleted successfully');
+}
+```
+
+```python Python
+import requests
+
+user_id = 1
+headers = {
+    'Authorization': 'Bearer <token>'
+}
+
+response = requests.delete(
+    f'https://api.soraka.com/api/usuarios/{user_id}',
+    headers=headers
+)
+
+if response.status_code == 204:
+    print('User deleted successfully')
+```
+</RequestExample>
+
+<ResponseExample>
+```text 204 No Content
+(Empty response body)
+```
+
+```json 401 Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Invalid or missing authentication token"
+}
+```
+
+```json 403 Forbidden
+{
+  "error": "Forbidden",
+  "message": "Access denied. ADMIN role required"
+}
+```
+
+```json 404 Not Found
+{
+  "error": "Not Found",
+  "message": "User with ID 1 not found"
+}
+```
+</ResponseExample>
+
+## Notes
+
+- The deletion behavior (soft or hard delete) is determined by the service layer implementation.
+- Deleting a user may have cascading effects on related entities (appointments, medical records, etc.).
+- Consider deactivating users instead of deleting them by using the [Update User](/api/users/update) endpoint with `isActivo: false` to preserve data integrity.

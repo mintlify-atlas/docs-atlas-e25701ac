@@ -1,0 +1,123 @@
+---
+title: "Delete Doctor"
+api: "DELETE /api/medicos/{id}"
+description: "Delete a doctor profile from the system. This does not delete the associated usuario."
+---
+
+## Authentication
+
+This endpoint requires authentication and ADMIN role authorization.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with ADMIN privileges
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the doctor to delete
+</ParamField>
+
+## Response
+
+Returns HTTP 204 No Content on successful deletion with an empty response body.
+
+<RequestExample>
+```bash cURL
+curl -X DELETE "https://api.soraka.com/api/medicos/1" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+```javascript JavaScript
+const doctorId = 1;
+const response = await fetch(`https://api.soraka.com/api/medicos/${doctorId}`, {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+  }
+});
+
+if (response.status === 204) {
+  console.log('Doctor deleted successfully');
+}
+```
+
+```python Python
+import requests
+
+doctor_id = 1
+response = requests.delete(
+    f'https://api.soraka.com/api/medicos/{doctor_id}',
+    headers={'Authorization': 'Bearer YOUR_ADMIN_TOKEN'}
+)
+
+if response.status_code == 204:
+    print('Doctor deleted successfully')
+```
+</RequestExample>
+
+<ResponseExample>
+```json 204 - No Content
+
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Authentication required"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Forbidden",
+  "message": "ADMIN role required"
+}
+```
+
+```json 404 - Not Found
+{
+  "error": "Not Found",
+  "message": "Doctor with id 1 not found"
+}
+```
+
+```json 409 - Conflict
+{
+  "error": "Conflict",
+  "message": "Cannot delete doctor with active appointments"
+}
+```
+</ResponseExample>
+
+## Important Considerations
+
+<Warning>
+  **Data Integrity**: Deleting a doctor may affect related data:
+  - **Appointments (Citas)**: Existing appointments associated with this doctor may be affected
+  - **Usuario**: The associated usuario account is NOT deleted and can be reused
+  - **Especialidad**: The specialty remains in the system
+</Warning>
+
+<Note>
+  **One-to-One Relationship**: Deleting the Medico breaks the one-to-one relationship with Usuario, allowing that usuario to potentially be linked to a new Medico profile if needed.
+</Note>
+
+## Use Cases
+
+- **Doctor Leaves Hospital**: Remove a doctor who is no longer with the organization
+- **Duplicate Records**: Clean up mistakenly created duplicate doctor profiles
+- **Account Restructuring**: Remove old doctor profiles before creating new ones
+
+## Best Practices
+
+1. **Check Dependencies**: Before deletion, verify if the doctor has:
+   - Active appointments
+   - Historical appointment records that should be preserved
+   - Any other system references
+
+2. **Soft Delete Alternative**: Consider implementing a soft delete (e.g., marking Usuario as inactive) instead of hard deletion to preserve historical data
+
+3. **Cascade Effects**: Understand how your database cascading rules handle related entities before performing deletion
+
+4. **Audit Trail**: Log deletion operations for compliance and auditing purposes

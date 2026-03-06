@@ -1,0 +1,141 @@
+---
+title: "Register User"
+api: "POST /auth/register"
+---
+
+Create a new user account in the system. The user will receive a confirmation email and must activate their account before logging in.
+
+## Authentication
+
+**Required:** This endpoint requires ADMIN role authentication.
+
+Include the JWT token in the Authorization header:
+```
+Authorization: Bearer <token>
+```
+
+## Request Body
+
+<ParamField body="nombre" type="string" required>
+  User's full name.
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Minimum length: 2 characters
+  - Maximum length: 50 characters
+</ParamField>
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be unique in the system.
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Must be valid email format
+  - Must not already exist in the database
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password. Will be encrypted before storage.
+  
+  **Validation:**
+  - Required (cannot be blank)
+  - Minimum length: 6 characters
+</ParamField>
+
+<ParamField body="rol" type="enum" required>
+  User's role in the system.
+  
+  **Validation:**
+  - Required
+  
+  **Allowed values:**
+  - `PACIENTE` - Patient role
+  - `MEDICO` - Doctor role
+  - `ADMIN` - Administrator role
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long">
+  Unique identifier for the newly created user.
+</ResponseField>
+
+<ResponseField name="nombre" type="string">
+  User's full name.
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  User's email address.
+</ResponseField>
+
+<ResponseField name="rol" type="string">
+  User's assigned role (PACIENTE, MEDICO, or ADMIN).
+</ResponseField>
+
+<ResponseField name="isActivo" type="boolean">
+  Account activation status. Always `false` for newly created accounts until email confirmation.
+</ResponseField>
+
+<ResponseField name="fechaRegistro" type="string">
+  Timestamp of account creation in ISO 8601 format.
+</ResponseField>
+
+## Error Responses
+
+<ResponseField name="400 Bad Request">
+  Validation error - one or more fields do not meet the validation requirements.
+</ResponseField>
+
+<ResponseField name="401 Unauthorized">
+  Missing or invalid authentication token.
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  User does not have ADMIN role permissions.
+</ResponseField>
+
+<ResponseField name="409 Conflict">
+  Email address already exists in the system (EmailYaEnUsoException).
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.soraka.hospital/auth/register \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "nombre": "Dr. María González",
+    "email": "maria.gonzalez@hospital.com",
+    "password": "securePass456",
+    "rol": "MEDICO"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "id": 42,
+  "nombre": "Dr. María González",
+  "email": "maria.gonzalez@hospital.com",
+  "rol": "MEDICO",
+  "isActivo": false,
+  "fechaRegistro": "2026-03-06T14:30:00"
+}
+```
+
+## Post-Registration Flow
+
+1. User account is created with `isActivo = false`
+2. A confirmation token is generated and stored in the database
+3. An email is sent to the user with a confirmation link containing the token
+4. User must click the link to activate their account (see [Confirm Account](/api/auth/confirm))
+5. Once confirmed, `isActivo` becomes `true` and the user can log in
+
+## Implementation Notes
+
+- Only users with ADMIN role can create new users
+- Email uniqueness is enforced at the database level
+- Passwords are automatically hashed using bcrypt before storage
+- The confirmation token expires after a configured duration (typically 24 hours)

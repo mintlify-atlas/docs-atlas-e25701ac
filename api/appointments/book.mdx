@@ -1,0 +1,129 @@
+---
+title: "Book Appointment"
+api: "POST /api/citas/{id}/reservar"
+description: "Book an available appointment slot as a patient"
+---
+
+## Authorization
+
+This endpoint requires `PACIENTE` authority. Only patients can book appointments for themselves.
+
+<ParamField path="id" type="integer" required>
+  The unique identifier of the available appointment to book
+</ParamField>
+
+<RequestExample>
+
+```bash cURL
+curl -X POST https://api.soraka.hospital/api/citas/15/reservar \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "motivo": "Dolor en el pecho que persiste"
+  }'
+```
+
+```javascript JavaScript
+const appointmentId = 15;
+const response = await fetch(`https://api.soraka.hospital/api/citas/${appointmentId}/reservar`, {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    motivo: 'Dolor en el pecho que persiste'
+  })
+});
+
+if (response.ok) {
+  console.log('Appointment booked successfully');
+}
+```
+
+```java Java
+Long appointmentId = 15L;
+String json = """{
+  "motivo": "Dolor en el pecho que persiste"
+}""";
+
+HttpRequest request = HttpRequest.newBuilder()
+  .uri(URI.create("https://api.soraka.hospital/api/citas/" + appointmentId + "/reservar"))
+  .header("Authorization", "Bearer YOUR_TOKEN")
+  .header("Content-Type", "application/json")
+  .POST(HttpRequest.BodyPublishers.ofString(json))
+  .build();
+HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 200 - Success
+{
+  "message": "Cita reservada exitosamente"
+}
+```
+
+```json 400 - Bad Request
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "La cita no está disponible",
+  "path": "/api/citas/15/reservar"
+}
+```
+
+```json 409 - Conflict
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 409,
+  "error": "Conflict",
+  "message": "Esta cita ya fue reservada por otro paciente",
+  "path": "/api/citas/15/reservar"
+}
+```
+
+```json 404 - Not Found
+{
+  "timestamp": "2026-03-06T10:00:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Cita no encontrada",
+  "path": "/api/citas/15/reservar"
+}
+```
+
+</ResponseExample>
+
+## Request Body
+
+<ParamField body="motivo" type="string" required>
+  Reason for the appointment. Must not be blank and cannot exceed 255 characters.
+</ParamField>
+
+## Notes
+
+- Only appointments with status `DISPONIBLE` can be booked
+- The patient is automatically identified from the authentication token
+- After successful booking, the appointment status changes to `CONFIRMADA`
+- The patient ID is assigned to the appointment
+- The system uses optimistic locking (`@Version` field) to prevent double-booking
+
+<Info>
+  **Preventing Double-Booking**: The system uses optimistic locking with a `@Version` field in the database. If two patients try to book the same appointment simultaneously, only one will succeed, and the other will receive a conflict error.
+</Info>
+
+## Optimistic Locking
+
+The `Cita` entity includes a `@Version` field that provides optimistic locking:
+
+- When an appointment is read, its version number is retrieved
+- When the appointment is updated (booked), the version is checked
+- If another transaction modified the appointment in the meantime, the version won't match
+- The booking will fail with a conflict error, preventing double-booking
+- The patient should retry by fetching the updated appointment list
+
+This ensures that only one patient can successfully book a specific appointment slot, even under high concurrency.

@@ -1,0 +1,410 @@
+---
+title: 'Doctors'
+description: 'Doctor management with specialty relationships and profile information'
+icon: 'user-doctor'
+---
+
+## Overview
+
+The doctor management system connects medical professionals with their specialties and user accounts, providing both public and administrative access levels.
+
+## Doctor Entity
+
+The `Medico` entity represents a doctor in the system:
+
+```java
+@Entity
+@Table(name = "medicos")
+public class Medico {
+    private Long id;
+    private Usuario usuario;        // One-to-one with user account
+    private Especialidad especialidad;  // Many-to-one with specialty
+    private String urlFoto;        // Profile photo URL
+}
+```
+
+Reference: Medico.java:6-24
+
+### Relationship with Users
+
+Each doctor has a **one-to-one** relationship with a user account:
+
+```java
+@OneToOne(optional = false)
+@JoinColumn(name = "usuario_id", nullable = false, unique = true)
+private Usuario usuario;
+```
+
+Reference: Medico.java:14-16
+
+<Note>
+  The user account determines the doctor's authentication credentials, name, email, and role (which must be MEDICO or ADMIN).
+</Note>
+
+### Relationship with Specialties
+
+Each doctor belongs to **one specialty**:
+
+```java
+@ManyToOne(optional = false)
+@JoinColumn(name = "especialidad_id")
+private Especialidad especialidad;
+```
+
+Reference: Medico.java:18-20
+
+<Tip>
+  Multiple doctors can have the same specialty, creating a many-to-one relationship.
+</Tip>
+
+### Profile Photo
+
+Doctors can have a profile photo URL:
+
+```java
+@Column(name = "foto_url")
+private String urlFoto;
+```
+
+Reference: Medico.java:22-23
+
+This typically points to a file in the `/uploads/` directory.
+
+## Public Access
+
+### Listing Public Doctor Information
+
+Anyone can view a limited set of doctor information without authentication:
+
+**Endpoint:** `GET /api/medicos/publicos`
+
+**Permission:** Public (no authentication required)
+
+```java
+@GetMapping("/publicos")
+public List<MedicoPublicoDTO> getMedicosPublicos() {
+    return medicoService.getMedicosPublico();
+}
+```
+
+Reference: MedicoController.java:60-63
+
+Configured in SecurityConfig.java:
+```java
+auth.requestMatchers(HttpMethod.GET, "/api/medicos/publicos").permitAll()
+```
+
+Reference: SecurityConfig.java:122
+
+<Note>
+  The public DTO (`MedicoPublicoDTO`) contains limited information suitable for public viewing, excluding sensitive details like full contact information.
+</Note>
+
+### Viewing Specific Doctor
+
+Authenticated users can view complete doctor details:
+
+**Endpoint:** `GET /api/medicos/{id}`
+
+**Permission:** Any authenticated user
+
+```java
+@GetMapping("/{id}")
+public MedicoResponseDTO getMedicoById(@PathVariable Long id) {
+    return medicoService.getMedicoById(id);
+}
+```
+
+Reference: MedicoController.java:74-77
+
+## Administrative Management
+
+All create, update, and delete operations require **ADMIN** role.
+
+### Creating a Doctor
+
+Administrators can add new doctors to the system:
+
+**Endpoint:** `POST /api/medicos`
+
+**Permission:** ADMIN only
+
+**Request:**
+```json
+{
+  "usuarioId": 15,
+  "especialidadId": 3,
+  "urlFoto": "/uploads/doctors/maria-garcia.jpg"
+}
+```
+
+```java
+@PostMapping
+@PreAuthorize("hasAuthority('ADMIN')")
+public MedicoResponseDTO createMedico(@Valid @RequestBody MedicoPostDTO medico) {
+    return medicoService.createMedico(medico);
+}
+```
+
+Reference: MedicoController.java:88-92
+
+<Warning>
+  The user account must already exist and should have the MEDICO role. Each user can only be associated with one doctor record due to the unique constraint.
+</Warning>
+
+### Updating Doctor Information
+
+Admins can update doctor details using partial updates (PATCH):
+
+**Endpoint:** `PATCH /api/medicos/{id}`
+
+**Permission:** ADMIN only
+
+**Request (partial update):**
+```json
+{
+  "especialidadId": 5,
+  "urlFoto": "/uploads/doctors/updated-photo.jpg"
+}
+```
+
+```java
+@PatchMapping("/{id}")
+@PreAuthorize("hasAuthority('ADMIN')")
+public MedicoResponseDTO patchMedico(@PathVariable Long id,
+                                     @Valid @RequestBody MedicoPatchDTO medico) {
+    return medicoService.patchMedico(id, medico);
+}
+```
+
+Reference: MedicoController.java:120-125
+
+<Tip>
+  PATCH allows updating only specific fields. Send only the fields you want to change.
+</Tip>
+
+### Deleting a Doctor
+
+Admins can remove doctors from the system:
+
+**Endpoint:** `DELETE /api/medicos/{id}`
+
+**Permission:** ADMIN only
+
+```java
+@DeleteMapping("/{id}")
+@PreAuthorize("hasAuthority('ADMIN')")
+public ResponseEntity<Void> deleteMedico(@PathVariable Long id) {
+    medicoService.deleteMedico(id);
+    return ResponseEntity.noContent().build();
+}
+```
+
+Reference: MedicoController.java:103-108
+
+<Warning>
+  Deleting a doctor may affect related appointments. Consider implementing soft deletes or validating no future appointments exist before deletion.
+</Warning>
+
+### Listing All Doctors (Admin)
+
+Admins can view the complete list of doctors with full details:
+
+**Endpoint:** `GET /api/medicos`
+
+**Permission:** ADMIN only
+
+```java
+@GetMapping
+@PreAuthorize("hasAuthority('ADMIN')")
+public List<MedicoResponseDTO> getMedicos() {
+    return medicoService.getMedicos();
+}
+```
+
+Reference: MedicoController.java:46-50
+
+## Integration with Appointments
+
+Doctors are central to the appointment system:
+
+### Appointment Constraints
+
+Each appointment requires a doctor:
+
+```java
+@ManyToOne(optional = false)
+@JoinColumn(name = "medico_id", nullable = false)
+@NotNull(message = "El médico es obligatorio")
+private Medico medico;
+```
+
+Reference: Cita.java:26-29
+
+### Unique Time Slots
+
+The database ensures doctors can't have conflicting appointments:
+
+```java
+@Table(name = "citas", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"medico_id", "fecha_hora"})
+})
+```
+
+Reference: Cita.java:12
+
+### Automatic Slot Generation
+
+The system automatically generates available appointment slots for all doctors:
+
+```java
+@Scheduled(cron = "0 0 1 * * *") // Daily at 1 AM
+public void generarCitasDisponibles() {
+    List<Medico> medicos = medicoRepository.findAll();
+    // Generate slots for each doctor...
+}
+```
+
+Reference: CitaService.java:286-288
+
+Each doctor gets:
+- **7 days** of appointments generated in advance
+- **8:00 AM to 3:00 PM** daily schedule
+- **30-minute** appointment intervals
+
+## Response Formats
+
+### MedicoResponseDTO (Full Details)
+
+Used for authenticated endpoints and admin views:
+
+```json
+{
+  "id": 7,
+  "usuarioId": 15,
+  "nombre": "Dra. María García",
+  "email": "maria.garcia@hospital.com",
+  "especialidadId": 3,
+  "especialidadNombre": "Cardiología",
+  "urlFoto": "/uploads/doctors/maria-garcia.jpg"
+}
+```
+
+### MedicoPublicoDTO (Limited Info)
+
+Used for public endpoints:
+
+```json
+{
+  "id": 7,
+  "nombre": "Dra. María García",
+  "especialidadNombre": "Cardiología",
+  "urlFoto": "/uploads/doctors/maria-garcia.jpg"
+}
+```
+
+<Note>
+  The public DTO excludes sensitive information like email addresses and internal IDs.
+</Note>
+
+## Doctor Workflow
+
+### Complete Setup Process
+
+1. **Create User Account** (Admin)
+   ```bash
+   POST /auth/register
+   {
+     "nombre": "Dra. María García",
+     "email": "maria.garcia@hospital.com",
+     "password": "securePassword123",
+     "rol": "MEDICO"
+   }
+   ```
+
+2. **User Confirms Email**
+   - System sends confirmation email
+   - User clicks link with token
+   - Account becomes active
+
+3. **Create Doctor Profile** (Admin)
+   ```bash
+   POST /api/medicos
+   {
+     "usuarioId": 15,
+     "especialidadId": 3,
+     "urlFoto": "/uploads/doctors/maria-garcia.jpg"
+   }
+   ```
+
+4. **System Generates Appointments**
+   - Automated daily job creates available slots
+   - Doctor can now receive appointments
+
+5. **Doctor Manages Appointments**
+   - Create custom appointment slots
+   - Modify existing appointments
+   - Cancel appointments when needed
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Complete User Setup First" icon="user-plus">
+    Always create and activate the user account before creating the doctor profile
+  </Card>
+  
+  <Card title="Assign Correct Specialty" icon="stethoscope">
+    Ensure doctors are assigned to their actual medical specialty
+  </Card>
+  
+  <Card title="Professional Photos" icon="camera">
+    Use professional profile photos to build patient trust
+  </Card>
+  
+  <Card title="Check Appointments Before Deletion" icon="exclamation-triangle">
+    Verify no future appointments exist before deleting a doctor
+  </Card>
+</CardGroup>
+
+## Common Operations
+
+### Finding Doctors by Specialty
+
+While not a direct endpoint, you can filter doctors by specialty on the client side after fetching the list, or the specialty endpoints show their associated doctors.
+
+### Updating Doctor Availability
+
+Doctor availability is managed through the appointment system rather than a separate schedule. Create or delete appointment slots to control availability.
+
+### Handling Doctor Unavailability
+
+When a doctor is temporarily unavailable:
+1. **Don't delete** the doctor record
+2. **Delete or cancel** their future appointment slots
+3. **Notify** patients with confirmed appointments
+4. **Recreate** slots when the doctor returns
+
+## Security Considerations
+
+### Role Separation
+
+<AccordionGroup>
+  <Accordion title="User vs. Doctor" icon="user">
+    A user with MEDICO role can authenticate and perform medical tasks, but they need a corresponding doctor record to appear in the system and have appointments.
+  </Accordion>
+  
+  <Accordion title="Admin Control" icon="lock">
+    Only administrators can create, modify, or delete doctor profiles, preventing unauthorized changes.
+  </Accordion>
+  
+  <Accordion title="Public Information" icon="eye">
+    The public endpoint provides limited information, protecting doctor privacy while allowing patients to browse options.
+  </Accordion>
+</AccordionGroup>
+
+## Related Documentation
+
+- [Specialties](/features/specialties) - Medical specialty management
+- [Appointments](/features/appointments) - How doctors interact with appointments
+- [User Roles](/features/user-roles) - Understanding MEDICO role permissions
+- [API Reference](/api/doctors/list) - Complete doctor API documentation

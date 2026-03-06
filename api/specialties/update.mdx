@@ -1,0 +1,80 @@
+---
+title: 'Update Medical Specialty'
+api: 'PATCH /api/especialidades/{id}'
+auth: 'bearer'
+---
+
+Partially updates an existing medical specialty. This endpoint is restricted to administrators only and allows updating specific fields without replacing the entire resource.
+
+<Warning>
+  This endpoint requires **ADMIN** privileges. Requests without proper authorization will receive a 403 Forbidden response.
+</Warning>
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the medical specialty to update
+</ParamField>
+
+## Request Body
+
+<ParamField body="nombre" type="string">
+  Updated name for the medical specialty. This field is optional, allowing you to update only if needed.
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long" required>
+  Unique identifier of the updated specialty
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Updated name of the medical specialty
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "nombre": "Cardiología Pediátrica"
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 1,
+  "nombre": "Cardiología Pediátrica"
+}
+```
+
+```json 404 - Not Found
+{
+  "error": "Specialty not found",
+  "message": "No specialty exists with ID: 999"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Access Denied",
+  "message": "You do not have permission to access this resource"
+}
+```
+</ResponseExample>
+
+<Note>
+  This is a PATCH operation, meaning you only need to include the fields you want to update. Fields not included in the request will remain unchanged.
+</Note>
+
+## Use Cases
+
+- Correct spelling or naming errors in specialty names
+- Update specialty names to reflect new medical terminology
+- Refine specialty categories as medical services evolve
+
+## Important Notes
+
+- Only administrators can modify medical specialties
+- The updated name must still be unique across all specialties
+- This operation does not affect doctors currently assigned to this specialty

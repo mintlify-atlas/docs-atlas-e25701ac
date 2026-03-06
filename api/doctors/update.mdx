@@ -1,0 +1,184 @@
+---
+title: "Update Doctor"
+api: "PATCH /api/medicos/{id}"
+description: "Partially update an existing doctor's profile by modifying their associated usuario or especialidad."
+---
+
+## Authentication
+
+This endpoint requires authentication and ADMIN role authorization.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with ADMIN privileges
+</ParamField>
+
+<ParamField header="Content-Type" type="string" required>
+  Must be `application/json`
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the doctor to update
+</ParamField>
+
+## Request Body
+
+All fields are optional. Only include the fields you want to update.
+
+<ParamField body="usuarioId" type="long" optional>
+  New usuario ID to associate with this doctor. The usuario must exist and not be linked to another doctor.
+</ParamField>
+
+<ParamField body="especialidadId" type="long" optional>
+  New specialty ID for this doctor. The specialty must exist in the system.
+</ParamField>
+
+<Note>
+  The `urlFoto` field cannot be updated through this endpoint. It was part of the POST creation but is not included in the PATCH DTO.
+</Note>
+
+## Response
+
+Returns the updated doctor object with complete information.
+
+<ResponseField name="id" type="long">
+  Unique identifier for the doctor
+</ResponseField>
+
+<ResponseField name="usuarioId" type="long">
+  Updated usuario ID (if changed)
+</ResponseField>
+
+<ResponseField name="nombreUsuario" type="string">
+  Full name from the associated usuario
+</ResponseField>
+
+<ResponseField name="emailUsuario" type="string">
+  Email from the associated usuario
+</ResponseField>
+
+<ResponseField name="especialidadId" type="long">
+  Updated specialty ID (if changed)
+</ResponseField>
+
+<ResponseField name="nombreEspecialidad" type="string">
+  Name of the specialty
+</ResponseField>
+
+<ResponseField name="urlFoto" type="string">
+  URL to the doctor's profile photo (unchanged)
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X PATCH "https://api.soraka.com/api/medicos/1" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "especialidadId": 5
+  }'
+```
+
+```javascript JavaScript
+const doctorId = 1;
+const response = await fetch(`https://api.soraka.com/api/medicos/${doctorId}`, {
+  method: 'PATCH',
+  headers: {
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    especialidadId: 5
+  })
+});
+
+const updatedDoctor = await response.json();
+```
+
+```python Python
+import requests
+
+doctor_id = 1
+response = requests.patch(
+    f'https://api.soraka.com/api/medicos/{doctor_id}',
+    headers={
+        'Authorization': 'Bearer YOUR_ADMIN_TOKEN',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'especialidadId': 5
+    }
+)
+
+updated_doctor = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 1,
+  "usuarioId": 5,
+  "nombreUsuario": "Dr. Ana García",
+  "emailUsuario": "ana.garcia@soraka.com",
+  "especialidadId": 5,
+  "nombreEspecialidad": "Neurología",
+  "urlFoto": "https://storage.soraka.com/doctors/ana-garcia.jpg"
+}
+```
+
+```json 400 - Validation Error
+{
+  "error": "Bad Request",
+  "message": "Invalid especialidad ID"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Authentication required"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Forbidden",
+  "message": "ADMIN role required"
+}
+```
+
+```json 404 - Not Found
+{
+  "error": "Not Found",
+  "message": "Doctor with id 1 not found"
+}
+```
+
+```json 409 - Conflict
+{
+  "error": "Conflict",
+  "message": "Usuario is already associated with another doctor"
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+- **Change Specialty**: Update a doctor's specialty when they complete additional training
+- **Reassign Usuario**: Link a different user account to the doctor profile (rare)
+- **Administrative Corrections**: Fix incorrect associations between entities
+
+## Important Constraints
+
+<Warning>
+  When updating `usuarioId`, ensure the new Usuario:
+  - Exists in the system
+  - Is not already linked to another Medico (unique constraint)
+  - Has appropriate permissions/role for a doctor
+</Warning>
+
+<Info>
+  This is a partial update (PATCH). You can send only the fields you want to change. Fields not included in the request will remain unchanged.
+</Info>

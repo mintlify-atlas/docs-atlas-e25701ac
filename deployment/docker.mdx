@@ -1,0 +1,297 @@
+---
+title: 'Docker Deployment'
+description: 'Deploy Soraka using Docker Compose with MySQL and phpMyAdmin'
+icon: 'docker'
+---
+
+## Overview
+
+Soraka uses Docker Compose to orchestrate three main services:
+- **backend**: Spring Boot application (Java 21)
+- **db**: MySQL 8.0 database
+- **phpmyadmin**: Web interface for database management
+
+## Architecture
+
+The Docker setup uses a multi-stage build process for the backend:
+
+### Multi-Stage Dockerfile
+
+```dockerfile
+# Stage 1: Build
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY backend/pom.xml .
+COPY backend/src ./src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Run
+FROM eclipse-temurin:21-jdk-jammy
+WORKDIR /app
+COPY --from=build /app/target/*.jar app.jar
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+This approach:
+- Reduces final image size by excluding Maven and source code
+- Uses Eclipse Temurin JDK 21 as the runtime
+- Exposes port 8080 for the Spring Boot application
+
+## Docker Compose Configuration
+
+### Services
+
+#### MySQL Database (db)
+
+```yaml
+db:
+  image: mysql:8.0
+  container_name: soraka-mysql
+  restart: always
+  environment:
+    MYSQL_DATABASE: hospitaldb
+    MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    TZ: Europe/Madrid
+  ports:
+    - "3306:3306"
+  volumes:
+    - mysql_data:/var/lib/mysql
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+    interval: 10s
+    timeout: 5s
+    retries: 30
+    start_period: 30s
+```
+
+**Key features:**
+- MySQL 8.0 image
+- Timezone set to `Europe/Madrid`
+- Persistent data storage via named volume `mysql_data`
+- Health check ensures database is ready before dependent services start
+- Health check retries for up to 5 minutes (30 retries × 10s interval)
+
+#### phpMyAdmin
+
+```yaml
+phpmyadmin:
+  image: phpmyadmin/phpmyadmin
+  container_name: soraka-phpmyadmin
+  restart: always
+  ports:
+    - "8081:80"
+  environment:
+    PMA_HOST: db
+    PMA_ABSOLUTE_URI: http://localhost:8081/
+    UPLOAD_LIMIT: 300M
+  depends_on:
+    db:
+      condition: service_healthy
+```
+
+**Key features:**
+- Accessible at `http://localhost:8081`
+- Waits for database health check before starting
+- 300MB upload limit for SQL imports
+
+#### Backend Application
+
+```yaml
+backend:
+  build: .
+  container_name: soraka-backend
+  restart: always
+  ports:
+    - "8080:8080"
+  env_file:
+    - .env
+  environment:
+    SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/hospitaldb?useSSL=false&serverTimezone=Europe/Madrid&allowPublicKeyRetrieval=true
+    SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+    SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+    TZ: Europe/Madrid
+    JAVA_TOOL_OPTIONS: -Duser.timezone=Europe/Madrid
+  volumes:
+    - ./backend/uploads:/app/uploads
+  depends_on:
+    db:
+      condition: service_healthy
+```
+
+**Key features:**
+- Builds from local Dockerfile
+- Loads environment variables from `.env` file
+- Timezone configured at both OS and JVM level
+- Persistent upload storage via bind mount
+- Waits for database health check before starting
+
+### Port Mappings
+
+| Service | Container Port | Host Port | Description |
+|---------|---------------|-----------|-------------|
+| backend | 8080 | 8080 | Spring Boot REST API |
+| db | 3306 | 3306 | MySQL database |
+| phpmyadmin | 80 | 8081 | Database management UI |
+
+### Volume Mounts
+
+| Volume | Type | Purpose |
+|--------|------|----------|
+| `mysql_data` | Named volume | Persistent database storage |
+| `./backend/uploads` | Bind mount | File uploads storage |
+
+## Deployment Process
+
+<Steps>
+  <Step title="Prerequisites">
+    Ensure Docker and Docker Compose are installed:
+    
+    ```bash
+    docker --version
+    docker-compose --version
+    ```
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the project root with required variables:
+    
+    ```bash
+    MYSQL_ROOT_PASSWORD=your_secure_password
+    SPRING_DATASOURCE_USERNAME=root
+    SPRING_DATASOURCE_PASSWORD=your_secure_password
+    SECRET_KEY=your_jwt_secret_key
+    MAIL_USERNAME=your_email@gmail.com
+    MAIL_PASSWORD=your_app_password
+    ```
+    
+    See [Environment Variables](/deployment/environment-variables) for details.
+  </Step>
+
+  <Step title="Build and start services">
+    From the project root, run:
+    
+    ```bash
+    docker-compose up --build
+    ```
+    
+    This will:
+    - Build the backend application using Maven
+    - Pull MySQL 8.0 and phpMyAdmin images
+    - Start all services with dependency order
+    - Create the `hospitaldb` database automatically
+  </Step>
+
+  <Step title="Verify deployment">
+    Check that all containers are running:
+    
+    ```bash
+    docker-compose ps
+    ```
+    
+    You should see three running containers:
+    - `soraka-backend`
+    - `soraka-mysql`
+    - `soraka-phpmyadmin`
+  </Step>
+
+  <Step title="Access the application">
+    The services are now available at:
+    - **Backend API**: http://localhost:8080
+    - **phpMyAdmin**: http://localhost:8081
+    - **Frontend**: http://localhost:5173 (if running separately)
+  </Step>
+</Steps>
+
+## Health Checks
+
+The MySQL service includes a comprehensive health check:
+
+```yaml
+healthcheck:
+  test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+  interval: 10s
+  timeout: 5s
+  retries: 30
+  start_period: 30s
+```
+
+- **interval**: Health check runs every 10 seconds
+- **timeout**: Each check has 5 seconds to complete
+- **retries**: Maximum 30 attempts before marking as unhealthy
+- **start_period**: Grace period of 30 seconds for database initialization
+
+Dependent services (backend, phpMyAdmin) wait for the database to be healthy before starting.
+
+## Managing Services
+
+### Start services in detached mode
+```bash
+docker-compose up -d
+```
+
+### View logs
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+```
+
+### Stop services
+```bash
+docker-compose down
+```
+
+### Stop and remove volumes
+```bash
+docker-compose down -v
+```
+
+<Warning>
+  Using `docker-compose down -v` will delete all database data. Only use this if you want to start fresh.
+</Warning>
+
+### Rebuild after code changes
+```bash
+docker-compose up --build backend
+```
+
+## Troubleshooting
+
+### Database connection refused
+Ensure the database health check has passed:
+```bash
+docker inspect soraka-mysql --format='{{.State.Health.Status}}'
+```
+
+If unhealthy, check logs:
+```bash
+docker logs soraka-mysql
+```
+
+### Backend fails to start
+Check that environment variables are correctly set:
+```bash
+docker-compose config
+```
+
+### Port already in use
+If ports 3306, 8080, or 8081 are already in use, modify the port mappings in `docker-compose.yml`:
+```yaml
+ports:
+  - "3307:3306"  # Use port 3307 on host instead
+```
+
+## Production Considerations
+
+<Warning>
+  This configuration is suitable for development. For production deployments:
+  - Use secrets management instead of `.env` files
+  - Enable SSL for MySQL connections
+  - Run database on a managed service or separate server
+  - Configure proper logging and monitoring
+  - Use specific image tags instead of `latest`
+  - Set up automated backups for the database
+</Warning>

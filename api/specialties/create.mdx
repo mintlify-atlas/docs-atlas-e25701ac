@@ -1,0 +1,73 @@
+---
+title: 'Create Medical Specialty'
+api: 'POST /api/especialidades'
+auth: 'bearer'
+---
+
+Creates a new medical specialty in the system. This endpoint is restricted to administrators only.
+
+<Warning>
+  This endpoint requires **ADMIN** privileges. Requests without proper authorization will receive a 403 Forbidden response.
+</Warning>
+
+## Request Body
+
+<ParamField body="nombre" type="string" required>
+  Name of the medical specialty. Must be unique and cannot be blank.
+  
+  <Note>
+    The specialty name must be unique in the system. Attempting to create a duplicate will result in a validation error.
+  </Note>
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="long" required>
+  Unique identifier assigned to the newly created specialty
+</ResponseField>
+
+<ResponseField name="nombre" type="string" required>
+  Name of the medical specialty as stored in the system
+</ResponseField>
+
+<RequestExample>
+```json Request
+{
+  "nombre": "Cardiología"
+}
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 1,
+  "nombre": "Cardiología"
+}
+```
+
+```json 400 - Validation Error
+{
+  "error": "Validation failed",
+  "message": "El nombre de la especialidad es obligatorio."
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Access Denied",
+  "message": "You do not have permission to access this resource"
+}
+```
+</ResponseExample>
+
+## Validation Rules
+
+- **nombre** must not be blank or null
+- **nombre** must be unique across all specialties
+
+## Use Cases
+
+- Add new medical specialties as the hospital expands services
+- Populate the specialty catalog during initial system setup
+- Manage specialty offerings through admin panel

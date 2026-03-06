@@ -1,0 +1,66 @@
+---
+title: "Get Public Users"
+api: "GET /api/usuarios/publico"
+description: "Retrieve a list of public patient users with limited information"
+---
+
+<Info>
+  This is a **public endpoint** that does not require authentication. It returns limited user information for patients only.
+</Info>
+
+## Authorization
+
+No authentication required. This endpoint is publicly accessible.
+
+## Response
+
+Returns an array of user objects with limited information (ID only). Only users with the `PACIENTE` role are included.
+
+<ResponseField name="id" type="long" required>
+  Unique identifier for the patient user
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl --request GET \
+  --url https://api.soraka.com/api/usuarios/publico
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.com/api/usuarios/publico', {
+  method: 'GET'
+});
+
+const publicUsers = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get('https://api.soraka.com/api/usuarios/publico')
+public_users = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 Success
+[
+  {
+    "id": 1
+  },
+  {
+    "id": 3
+  },
+  {
+    "id": 5
+  }
+]
+```
+</ResponseExample>
+
+## Notes
+
+- This endpoint only returns users with the `PACIENTE` (patient) role.
+- Only the user ID is exposed to maintain privacy and security.
+- This endpoint is typically used for public-facing features where patient information needs to be referenced without exposing sensitive data.
+- For complete user information, use the authenticated [Get User by ID](/api/users/get) endpoint.

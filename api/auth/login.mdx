@@ -1,0 +1,69 @@
+---
+title: "Login"
+api: "POST /auth/login"
+---
+
+Authenticate a user and receive a JWT token for accessing protected endpoints.
+
+## Authentication
+
+This is a public endpoint and does not require authentication.
+
+## Request Body
+
+<ParamField body="email" type="string" required>
+  User's email address. Must be a valid email format.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password. Minimum length: 6 characters.
+</ParamField>
+
+## Response
+
+<ResponseField name="token" type="string">
+  JWT authentication token containing user claims (nombre, email, rol). Include this token in the `Authorization` header as `Bearer <token>` for authenticated requests.
+</ResponseField>
+
+## Token Claims
+
+The JWT token includes the following claims:
+- `nombre`: User's full name
+- `email`: User's email address
+- `rol`: User role (PACIENTE, MEDICO, or ADMIN)
+
+## Error Responses
+
+<ResponseField name="401 Unauthorized">
+  Invalid credentials or account not activated. Users must confirm their account via email before logging in.
+</ResponseField>
+
+<ResponseField name="403 Forbidden">
+  Account is not active (isActivo = false). The user must click the confirmation link sent to their email.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl -X POST https://api.soraka.hospital/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "doctor@hospital.com",
+    "password": "securePassword123"
+  }'
+```
+
+## Example Response
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub21icmUiOiJEci4gSnVhbiBQw6lyZXoiLCJlbWFpbCI6ImRvY3RvckBob3NwaXRhbC5jb20iLCJyb2wiOiJNRURJQ08iLCJzdWIiOiJkb2N0b3JAaG9zcGl0YWwuY29tIiwiaWF0IjoxNzQwMDAwMDAwLCJleHAiOjE3NDAwMzYwMDB9.signature"
+}
+```
+
+## Implementation Notes
+
+- Authentication is handled by Spring Security's `AuthenticationManager`
+- Passwords are validated against bcrypt-hashed values in the database
+- Only users with `isActivo = true` can successfully authenticate
+- The token expires after a configured duration (check JWT service configuration)

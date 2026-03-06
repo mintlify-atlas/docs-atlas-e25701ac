@@ -1,0 +1,299 @@
+---
+title: 'User Roles'
+description: 'Three-tier role hierarchy with permission inheritance'
+icon: 'users'
+---
+
+## Overview
+
+Soraka implements a hierarchical role-based access control (RBAC) system with three distinct user roles: **ADMIN**, **MEDICO**, and **PACIENTE**.
+
+## Role Hierarchy
+
+The system uses permission inheritance where higher-level roles automatically inherit permissions from lower-level roles:
+
+```
+ADMIN > MEDICO > PACIENTE
+```
+
+This means:
+- **ADMIN** has all permissions of MEDICO and PACIENTE
+- **MEDICO** has all permissions of PACIENTE
+- **PACIENTE** has only basic patient permissions
+
+### Implementation
+
+The hierarchy is configured in `SecurityConfig.java`:
+
+```java
+@Bean
+public RoleHierarchy roleHierarchy() {
+    RoleHierarchyImpl hierarchy = new RoleHierarchyImpl();
+    hierarchy.setHierarchy(String.format("%s > %s \n %s > %s",
+            ROLE_ADMIN, ROLE_MEDICO,
+            ROLE_MEDICO, ROLE_PACIENTE));
+    return hierarchy;
+}
+```
+
+Reference: SecurityConfig.java:207-213
+
+## Role Definitions
+
+The roles are defined as an enum:
+
+```java
+public enum Rol {
+    PACIENTE,
+    MEDICO,
+    ADMIN
+}
+```
+
+Reference: Rol.java:3-7
+
+## Role Permissions
+
+### PACIENTE (Patient)
+
+Patients have the most restricted access, limited to managing their own appointments.
+
+<AccordionGroup>
+  <Accordion title="View Permissions" icon="eye">
+    - View their own appointments (`GET /api/citas/mis-citas`)
+    - View available appointment slots (`GET /api/citas/disponibles`)
+    - View public doctor information (`GET /api/medicos/publicos`)
+    - View specialties (`GET /api/especialidades`)
+  </Accordion>
+  
+  <Accordion title="Action Permissions" icon="hand">
+    - Book available appointments (`POST /api/citas/{id}/reservar`)
+    - Cancel their own appointments (`POST /api/citas/{id}/cancelar`)
+  </Accordion>
+  
+  <Accordion title="Restrictions" icon="ban">
+    - Cannot create appointments directly
+    - Cannot view other patients' appointments
+    - Cannot access admin endpoints
+    - Cannot modify doctor or specialty data
+  </Accordion>
+</AccordionGroup>
+
+**Example endpoint protection:**
+```java
+@GetMapping("/mis-citas")
+@PreAuthorize("hasAuthority('PACIENTE')")
+public List<CitaResponseDTO> getMisCitas(Authentication authentication) {
+    Usuario usuario = (Usuario) authentication.getPrincipal();
+    return citaService.getCitasPorPaciente(usuario.getId());
+}
+```
+
+Reference: CitaController.java:46-51
+
+### MEDICO (Doctor)
+
+Doctors inherit all patient permissions plus additional capabilities for managing appointments.
+
+<AccordionGroup>
+  <Accordion title="Inherited from PACIENTE" icon="arrow-down">
+    - All patient viewing and booking capabilities
+    - View available appointments
+    - View specialties and doctors
+  </Accordion>
+  
+  <Accordion title="Additional Permissions" icon="plus">
+    - View specific appointment details (`GET /api/citas/{id}`)
+    - Create new appointment slots (`POST /api/citas`)
+    - Modify appointments (`PATCH /api/citas/{id}`)
+    - Delete appointments (`DELETE /api/citas/{id}`)
+    - Cancel any patient's appointment (`POST /api/citas/{id}/cancelar`)
+  </Accordion>
+  
+  <Accordion title="Restrictions" icon="ban">
+    - Cannot view all appointments (only specific ones)
+    - Cannot manage users
+    - Cannot create/modify doctors or specialties
+  </Accordion>
+</AccordionGroup>
+
+**Example endpoint protection:**
+```java
+@PostMapping
+@PreAuthorize("hasAuthority('MEDICO') or hasAuthority('ADMIN')")
+public CitaResponseDTO createCita(@RequestBody @Valid CitaPostDTO cita) {
+    return citaService.createCita(cita);
+}
+```
+
+Reference: CitaController.java:71-77
+
+### ADMIN (Administrator)
+
+Administrators have full system access, inheriting all permissions from MEDICO and PACIENTE.
+
+<AccordionGroup>
+  <Accordion title="Inherited Permissions" icon="arrow-down">
+    - All MEDICO permissions
+    - All PACIENTE permissions
+  </Accordion>
+  
+  <Accordion title="Exclusive Permissions" icon="crown">
+    - Register new users (`POST /auth/register`)
+    - View all appointments (`GET /api/citas`)
+    - Full doctor management:
+      - Create doctors (`POST /api/medicos`)
+      - Update doctors (`PATCH /api/medicos/{id}`)
+      - Delete doctors (`DELETE /api/medicos/{id}`)
+      - View all doctors (`GET /api/medicos`)
+    - Full specialty management:
+      - Create specialties (`POST /api/especialidades`)
+      - Update specialties (`PATCH /api/especialidades/{id}`)
+      - Delete specialties (`DELETE /api/especialidades/{id}`)
+  </Accordion>
+</AccordionGroup>
+
+**Example admin-only endpoint:**
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+@PostMapping("/register")
+public UsuarioResponseDTO register(@RequestBody UsuarioPostDTO dto) {
+    return usuarioService.createUsuario(dto);
+}
+```
+
+Reference: AuthController.java:105-109
+
+## Permission Enforcement
+
+### Method-Level Security
+
+Permissions are enforced using Spring Security's `@PreAuthorize` annotation:
+
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+@GetMapping
+public List<MedicoResponseDTO> getMedicos() {
+    return medicoService.getMedicos();
+}
+```
+
+Reference: MedicoController.java:46-50
+
+### URL-Based Security
+
+Some endpoints are protected at the HTTP level in `SecurityConfig.java`:
+
+```java
+auth
+    .requestMatchers("/auth/login").permitAll()
+    .requestMatchers("/auth/confirmar/**").permitAll()
+    .requestMatchers(HttpMethod.POST, "/auth/register")
+    .hasAuthority(ROLE_MEDICO);
+```
+
+Reference: SecurityConfig.java:106-109
+
+<Note>
+  The security configuration shows register requires MEDICO, but the controller enforces ADMIN. The controller-level `@PreAuthorize` takes precedence.
+</Note>
+
+### Business Logic Security
+
+Some permissions are enforced in service layer logic:
+
+```java
+if (cita.getPaciente() != null &&
+        !cita.getPaciente().getId().equals(paciente.getId()) &&
+        paciente.getRol() != Rol.MEDICO &&
+        paciente.getRol() != Rol.ADMIN) {
+    throw new AccessDeniedException("No puedes cancelar esta cita");
+}
+```
+
+Reference: CitaService.java:264-269
+
+## Role Assignment
+
+### At Registration
+
+Roles are assigned when administrators create user accounts:
+
+```java
+@PreAuthorize("hasAuthority('ADMIN')")
+@PostMapping("/register")
+public UsuarioResponseDTO register(@RequestBody UsuarioPostDTO dto) {
+    return usuarioService.createUsuario(dto);
+}
+```
+
+The `UsuarioPostDTO` includes a `rol` field that specifies the user's role.
+
+### Role Storage
+
+Roles are stored in the `Usuario` entity and included in JWT tokens:
+
+```java
+claims.put("rol", ((Usuario) userDetails).getRol());
+```
+
+Reference: AuthController.java:83
+
+<Warning>
+  Roles cannot be changed after account creation in the current implementation. This is a security measure to prevent privilege escalation.
+</Warning>
+
+## Common Access Patterns
+
+### Checking User Role
+
+In service methods, you can check the authenticated user's role:
+
+```java
+Usuario usuario = (Usuario) authentication.getPrincipal();
+if (usuario.getRol() == Rol.ADMIN) {
+    // Admin-specific logic
+}
+```
+
+### Multi-Role Endpoints
+
+Some endpoints allow multiple roles:
+
+```java
+@PreAuthorize("hasAuthority('MEDICO') or hasAuthority('ADMIN')")
+@PostMapping
+public CitaResponseDTO createCita(@RequestBody @Valid CitaPostDTO cita) {
+    return citaService.createCita(cita);
+}
+```
+
+<Tip>
+  Due to role hierarchy, you can often use just the lowest required role and higher roles will automatically have access. However, explicit multi-role declarations improve code clarity.
+</Tip>
+
+## Security Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Principle of Least Privilege" icon="shield">
+    Grant users only the minimum permissions needed for their role
+  </Card>
+  
+  <Card title="Defense in Depth" icon="layer-group">
+    Implement security checks at multiple layers (controller, service, data)
+  </Card>
+  
+  <Card title="Explicit Permissions" icon="list-check">
+    Use clear @PreAuthorize annotations even when hierarchy applies
+  </Card>
+  
+  <Card title="Audit Trail" icon="clipboard-list">
+    Log role-based actions for security auditing
+  </Card>
+</CardGroup>
+
+## Related Documentation
+
+- [Authentication](/features/authentication) - JWT token and login flow
+- [Appointments](/features/appointments) - Role-based appointment access
+- [Doctors](/features/doctors) - Doctor management permissions

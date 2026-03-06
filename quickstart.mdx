@@ -1,80 +1,260 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get Soraka running locally in minutes with Docker Compose
 ---
 
-## Get started in three steps
+# Quickstart Guide
 
-Get your documentation site running locally and make your first customization.
+This guide will walk you through setting up Soraka on your local machine using Docker. You'll have the complete application stack running in just a few minutes.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Before you begin, ensure you have the following installed on your system:
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+- **Docker** (version 20.10 or higher recommended)
+- **Docker Compose** (version 2.0 or higher recommended)
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+Visit [docker.com](https://www.docker.com/) to download and install Docker Desktop, which includes both Docker Engine and Docker Compose.
 </Note>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Soraka repository to your local machine:
+
+    ```bash
+    git clone https://github.com/lun-code/Soraka.git
+    cd Soraka
+    ```
+
+    This will download the complete source code including backend, frontend, and Docker configuration files.
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the root directory of the project with your database and JWT configuration:
+
+    ```bash .env
+    MYSQL_ROOT_PASSWORD=tu_password_root
+    SPRING_DATASOURCE_USERNAME=root
+    SPRING_DATASOURCE_PASSWORD=tu_password_root
+    JWT_SECRET=tu_clave_secreta_jwt
+    ```
+
+    <Warning>
+    **Important:** Replace the placeholder values with your own secure credentials:
+    - Use a strong password for `MYSQL_ROOT_PASSWORD` and `SPRING_DATASOURCE_PASSWORD`
+    - Generate a secure random string for `JWT_SECRET` (at least 256 bits recommended)
+    - Never commit the `.env` file to version control
+    </Warning>
+
+    ### Environment Variables Explained
+
+    | Variable | Description |
+    |---|---|
+    | `MYSQL_ROOT_PASSWORD` | Root password for the MySQL database |
+    | `SPRING_DATASOURCE_USERNAME` | Database username for Spring Boot (typically `root`) |
+    | `SPRING_DATASOURCE_PASSWORD` | Database password (should match `MYSQL_ROOT_PASSWORD`) |
+    | `JWT_SECRET` | Secret key used to sign JWT tokens |
+  </Step>
+
+  <Step title="Start the Services">
+    Launch all services using Docker Compose:
+
+    ```bash
+    docker-compose up --build
+    ```
+
+    This command will:
+    - Build the Spring Boot backend Docker image
+    - Pull the MySQL 8.0 and phpMyAdmin images
+    - Create and start all containers
+    - Initialize the `hospitaldb` database
+    - Configure networking between services
+
+    <Note>
+    The first build may take several minutes as Docker downloads base images and compiles the Spring Boot application. Subsequent starts will be much faster.
+    </Note>
+
+    ### What Gets Started
+
+    Docker Compose orchestrates three containers:
+
+    1. **soraka-mysql** - MySQL 8.0 database with health checks
+    2. **soraka-backend** - Spring Boot application (waits for database to be healthy)
+    3. **soraka-phpmyadmin** - Web-based database administration tool
+  </Step>
+
+  <Step title="Access the Application">
+    Once all services are running, you can access them at the following URLs:
+
+    | Service | URL | Description |
+    |---|---|---|
+    | **API Backend** | [http://localhost:8080](http://localhost:8080) | Spring Boot REST API |
+    | **Frontend** | [http://localhost:5173](http://localhost:5173) | React web application |
+    | **phpMyAdmin** | [http://localhost:8081](http://localhost:8081) | Database management interface |
+
+    <Note>
+    The frontend runs on port **5173** (Vite's default development server port), not 3000 as you might expect from typical React apps.
+    </Note>
+  </Step>
+
+  <Step title="Verify the Installation">
+    Test that the backend is running correctly:
+
+    ```bash
+    curl http://localhost:8080/actuator/health
+    ```
+
+    You should see a response indicating the application is up and running.
+
+    ### Database Access
+
+    To connect to the database via phpMyAdmin:
+
+    1. Navigate to [http://localhost:8081](http://localhost:8081)
+    2. Login with:
+       - **Server:** `db`
+       - **Username:** `root`
+       - **Password:** (the value you set for `MYSQL_ROOT_PASSWORD`)
+    3. Select the `hospitaldb` database
+
+    You'll see the JPA entities have been automatically created by Hibernate.
+  </Step>
+</Steps>
+
+## Container Architecture
+
+The Docker Compose configuration creates a networked environment with service dependencies:
+
+```yaml
+Services Architecture:
+
+┌─────────────────┐
+│   phpMyAdmin    │ :8081
+│   (Web UI)      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│   MySQL 8.0     │ :3306
+│   hospitaldb    │
+└────────┬────────┘
+         │
+         ▼ (waits for health check)
+┌─────────────────┐
+│  Spring Boot    │ :8080
+│    Backend      │
+└─────────────────┘
+```
+
+Key configuration details:
+
+- **Database:** Stores data in a persistent Docker volume (`mysql_data`)
+- **Timezone:** All services configured for `Europe/Madrid`
+- **Health Checks:** Backend waits for database to be healthy before starting
+- **File Uploads:** Backend volume mount for persistent file storage at `./backend/uploads`
+
+## Next Steps
+
+Now that you have Soraka running, explore these features:
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/features/authentication">
+    Learn how to register users and authenticate with JWT tokens
+  </Card>
+  <Card title="User Management" icon="users" href="/features/user-roles">
+    Understand user roles and permission management
+  </Card>
+  <Card title="Doctors & Specialties" icon="user-doctor" href="/features/doctors">
+    Manage medical professionals and their specializations
+  </Card>
+  <Card title="Appointment Booking" icon="calendar-check" href="/features/appointments">
+    Create, view, and manage appointment slots
+  </Card>
+</CardGroup>
+
+## Common Commands
+
+Here are some useful Docker commands for managing your Soraka installation:
+
+### Stop the Services
+
+```bash
+docker-compose down
+```
+
+### Stop and Remove Volumes (Clean Slate)
+
+```bash
+docker-compose down -v
+```
+
+<Warning>
+This will delete the database and all data. Use only when you want to start fresh.
+</Warning>
+
+### View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f db
+```
+
+### Rebuild After Code Changes
+
+```bash
+docker-compose up --build
+```
+
+## Troubleshooting
+
+### Database Connection Issues
+
+If the backend fails to connect to the database:
+
+1. Check that the MySQL container is healthy:
+   ```bash
+   docker ps
+   ```
+2. Verify the `.env` file credentials match
+3. Check database logs:
+   ```bash
+   docker-compose logs db
+   ```
+
+### Port Already in Use
+
+If you see "port already allocated" errors:
+
+- **Port 8080:** Another application is using this port. Stop it or change the backend port in `docker-compose.yml`
+- **Port 3306:** You may have MySQL running locally. Stop it or change the port mapping
+- **Port 5173:** Another Vite dev server may be running
+
+### Frontend Cannot Connect to Backend
+
+Ensure:
+- The backend is running on port 8080
+- CORS is properly configured in the Spring Boot application
+- You're accessing the frontend at `http://localhost:5173`
+
+## Development Mode
+
+The frontend runs in development mode with hot module replacement (HMR) enabled. Any changes to React components will automatically reload in the browser.
+
+For backend development, you'll need to rebuild the Docker image after making changes:
+
+```bash
+docker-compose up --build backend
+```
+
+Alternatively, consider running the Spring Boot application locally outside Docker during development for faster iteration.
+
+## What's Next?
+
+Continue to the [API Reference](/api/auth/login) to explore available endpoints, or jump into specific feature documentation to understand how to use Soraka's capabilities.

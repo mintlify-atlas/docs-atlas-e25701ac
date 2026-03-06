@@ -1,0 +1,116 @@
+---
+title: "Get Doctor by ID"
+api: "GET /api/medicos/{id}"
+description: "Retrieve detailed information about a specific doctor by their unique identifier."
+---
+
+## Authentication
+
+This endpoint requires authentication. Any authenticated user can access doctor details.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token for authentication
+</ParamField>
+
+## Path Parameters
+
+<ParamField path="id" type="long" required>
+  The unique identifier of the doctor to retrieve
+</ParamField>
+
+## Response
+
+Returns a single doctor object with complete information.
+
+<ResponseField name="id" type="long">
+  Unique identifier for the doctor
+</ResponseField>
+
+<ResponseField name="usuarioId" type="long">
+  ID of the associated usuario (user account)
+</ResponseField>
+
+<ResponseField name="nombreUsuario" type="string">
+  Full name of the doctor from usuario entity
+</ResponseField>
+
+<ResponseField name="emailUsuario" type="string">
+  Email address from usuario entity
+</ResponseField>
+
+<ResponseField name="especialidadId" type="long">
+  ID of the doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="nombreEspecialidad" type="string">
+  Name of the medical specialty
+</ResponseField>
+
+<ResponseField name="urlFoto" type="string">
+  URL to the doctor's profile photo
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.soraka.com/api/medicos/1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const doctorId = 1;
+const response = await fetch(`https://api.soraka.com/api/medicos/${doctorId}`, {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+
+const doctor = await response.json();
+```
+
+```python Python
+import requests
+
+doctor_id = 1
+response = requests.get(
+    f'https://api.soraka.com/api/medicos/{doctor_id}',
+    headers={'Authorization': 'Bearer YOUR_TOKEN'}
+)
+
+doctor = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+{
+  "id": 1,
+  "usuarioId": 5,
+  "nombreUsuario": "Dr. Ana García",
+  "emailUsuario": "ana.garcia@soraka.com",
+  "especialidadId": 2,
+  "nombreEspecialidad": "Cardiología",
+  "urlFoto": "https://storage.soraka.com/doctors/ana-garcia.jpg"
+}
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Authentication required"
+}
+```
+
+```json 404 - Not Found
+{
+  "error": "Not Found",
+  "message": "Doctor with id 1 not found"
+}
+```
+</ResponseExample>
+
+## Use Cases
+
+- Displaying detailed doctor profiles to authenticated users
+- Retrieving doctor information for appointment booking flows
+- Internal administrative tools for managing doctor records

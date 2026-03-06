@@ -1,122 +1,124 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Soraka",
+  "theme": "linden",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#1c63ec",
+    "light": "#8cb4f4",
+    "dark": "#04143c"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "https://media.brand.dev/4bfb42e9-a222-4bde-8604-b4d85434a915.png",
+  "logo": {
+    "light": "https://media.brand.dev/0d391ad6-1672-408c-b36d-56bbf5d50e46.svg",
+    "dark": "https://media.brand.dev/0d391ad6-1672-408c-b36d-56bbf5d50e46.svg"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/lun-code/Soraka"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/lun-code/Soraka"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
+            "pages": ["introduction", "quickstart"]
+          },
+          {
+            "group": "Core Features",
             "pages": [
-              "index",
-              "quickstart",
-              "development"
+              "features/authentication",
+              "features/user-roles",
+              "features/appointments",
+              "features/doctors",
+              "features/specialties"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Deployment",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "deployment/docker",
+              "deployment/environment-variables",
+              "deployment/database-setup"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Architecture",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "architecture/overview",
+              "architecture/backend",
+              "architecture/frontend",
+              "architecture/security"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Authentication",
             "pages": [
-              "api-reference/introduction"
+              "api/auth/login",
+              "api/auth/register",
+              "api/auth/confirm"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Users",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api/users/list",
+              "api/users/get",
+              "api/users/update",
+              "api/users/delete",
+              "api/users/public"
+            ]
+          },
+          {
+            "group": "Doctors",
+            "pages": [
+              "api/doctors/list",
+              "api/doctors/get",
+              "api/doctors/create",
+              "api/doctors/update",
+              "api/doctors/delete",
+              "api/doctors/public"
+            ]
+          },
+          {
+            "group": "Specialties",
+            "pages": [
+              "api/specialties/list",
+              "api/specialties/get",
+              "api/specialties/create",
+              "api/specialties/update",
+              "api/specialties/delete"
+            ]
+          },
+          {
+            "group": "Appointments",
+            "pages": [
+              "api/appointments/list",
+              "api/appointments/available",
+              "api/appointments/my-appointments",
+              "api/appointments/get",
+              "api/appointments/create",
+              "api/appointments/update",
+              "api/appointments/delete",
+              "api/appointments/book",
+              "api/appointments/cancel"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

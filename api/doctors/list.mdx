@@ -1,0 +1,123 @@
+---
+title: "List All Doctors"
+api: "GET /api/medicos"
+description: "Retrieve a complete list of all registered doctors with full details including usuario and especialidad relationships."
+---
+
+## Authentication
+
+This endpoint requires authentication and ADMIN role authorization.
+
+<ParamField header="Authorization" type="string" required>
+  Bearer token with ADMIN privileges
+</ParamField>
+
+## Response
+
+Returns an array of doctor objects with complete information.
+
+<ResponseField name="id" type="long">
+  Unique identifier for the doctor
+</ResponseField>
+
+<ResponseField name="usuarioId" type="long">
+  ID of the associated usuario (user account)
+</ResponseField>
+
+<ResponseField name="nombreUsuario" type="string">
+  Full name of the doctor from usuario entity
+</ResponseField>
+
+<ResponseField name="emailUsuario" type="string">
+  Email address from usuario entity
+</ResponseField>
+
+<ResponseField name="especialidadId" type="long">
+  ID of the doctor's medical specialty
+</ResponseField>
+
+<ResponseField name="nombreEspecialidad" type="string">
+  Name of the medical specialty
+</ResponseField>
+
+<ResponseField name="urlFoto" type="string">
+  URL to the doctor's profile photo
+</ResponseField>
+
+<RequestExample>
+```bash cURL
+curl -X GET "https://api.soraka.com/api/medicos" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.soraka.com/api/medicos', {
+  method: 'GET',
+  headers: {
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+  }
+});
+
+const doctors = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://api.soraka.com/api/medicos',
+    headers={'Authorization': 'Bearer YOUR_ADMIN_TOKEN'}
+)
+
+doctors = response.json()
+```
+</RequestExample>
+
+<ResponseExample>
+```json 200 - Success
+[
+  {
+    "id": 1,
+    "usuarioId": 5,
+    "nombreUsuario": "Dr. Ana García",
+    "emailUsuario": "ana.garcia@soraka.com",
+    "especialidadId": 2,
+    "nombreEspecialidad": "Cardiología",
+    "urlFoto": "https://storage.soraka.com/doctors/ana-garcia.jpg"
+  },
+  {
+    "id": 2,
+    "usuarioId": 8,
+    "nombreUsuario": "Dr. Carlos Mendoza",
+    "emailUsuario": "carlos.mendoza@soraka.com",
+    "especialidadId": 1,
+    "nombreEspecialidad": "Medicina General",
+    "urlFoto": "https://storage.soraka.com/doctors/carlos-mendoza.jpg"
+  }
+]
+```
+
+```json 401 - Unauthorized
+{
+  "error": "Unauthorized",
+  "message": "Authentication required"
+}
+```
+
+```json 403 - Forbidden
+{
+  "error": "Forbidden",
+  "message": "ADMIN role required"
+}
+```
+</ResponseExample>
+
+## Entity Relationships
+
+The response includes denormalized data from related entities:
+
+- **Medico**: Core doctor entity with `id` and `urlFoto`
+- **Usuario**: One-to-one relationship providing user account details (`usuarioId`, `nombreUsuario`, `emailUsuario`)
+- **Especialidad**: Many-to-one relationship providing specialty information (`especialidadId`, `nombreEspecialidad`)
+
+Each Medico must be associated with exactly one Usuario and one Especialidad.
